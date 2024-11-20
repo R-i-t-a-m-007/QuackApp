@@ -3,52 +3,46 @@ import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ImageBackgr
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Font from 'expo-font';
-import { useFonts } from 'expo-font';
-
 
 export default function RegisterPage() {
   const router = useRouter();
-  
 
-  
-
-
-  const [formData, setFormData] = useState({ 
-    username: '', 
-    email: '', 
-    phone: '', 
-    address: '', 
-    postcode: '', 
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    phone: '',
+    address: '',
+    postcode: '',
     password: '',
-    userType: '' 
+    userType: ''
   });
-
-  useEffect(() => {
-    setFormData({ 
-      username: '', 
-      email: '', 
-      phone: '', 
-      address: '', 
-      postcode: '', 
-      password: '',
-      userType: '' 
-    });
-    setErrors({});
-  }, []);
 
   const [errors, setErrors] = useState({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [usernameExistsModal, setUsernameExistsModal] = useState(false);
+  const [emailExistsModal, setEmailExistsModal] = useState(false);
+
+  useEffect(() => {
+    setFormData({
+      username: '',
+      email: '',
+      phone: '',
+      address: '',
+      postcode: '',
+      password: '',
+      userType: ''
+    });
+    setErrors({});
+  }, []);
 
   const handleUserTypeSelection = (type) => {
-    setFormData(prevData => ({
+    setFormData((prevData) => ({
       ...prevData,
       userType: type
     }));
-    setErrors(prevData => ({
+    setErrors((prevData) => ({
       ...prevData,
       userType: '' // Clear the error when a user type is selected
     }));
@@ -59,31 +53,56 @@ export default function RegisterPage() {
     setErrors((prevState) => ({ ...prevState, [field]: '' }));
   };
 
-  const handleRegister = async () => {
+  const validateFields = () => {
     const newErrors = {};
+
+    // Validate required fields
     Object.keys(formData).forEach((field) => {
       if (field !== 'userType' && !formData[field]) {
         newErrors[field] = 'Please enter this field';
       }
     });
 
+    // Validate email format
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+
+    // Validate phone to allow only numbers
+    const phoneRegex = /^[0-9]+$/;
+    if (formData.phone && !phoneRegex.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+
+    // Validate password length
+    if (formData.password && formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    // Validate userType
     if (!formData.userType) {
       newErrors.userType = 'Please select a user type';
     }
 
+    return newErrors;
+  };
+
+  const handleRegister = async () => {
+    const newErrors = validateFields();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-
+  
     try {
-      const response = await fetch('http://192.168.1.17:5000/api/auth/register', {
+      const response = await fetch('http://192.168.1.12:5000/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
       const data = await response.json();
-
+  
       if (response.ok) {
         setShowSuccessModal(true);
         setTimeout(() => {
@@ -93,6 +112,16 @@ export default function RegisterPage() {
       } else {
         if (data.message === 'Username already exists.') {
           setUsernameExistsModal(true);
+          // Hide the modal after 2 seconds
+          setTimeout(() => {
+            setUsernameExistsModal(false);
+          }, 2000);
+        } else if (data.message === 'Email already exists.') {
+          setEmailExistsModal(true);
+          // Hide the modal after 2 seconds
+          setTimeout(() => {
+            setEmailExistsModal(false);
+          }, 2000);
         } else {
           setErrorMessage(data.message || 'Registration failed. Please check your details.');
           setErrorModalVisible(true);
@@ -103,6 +132,7 @@ export default function RegisterPage() {
       setErrorModalVisible(true);
     }
   };
+  
 
   return (
     <ImageBackground 
@@ -129,50 +159,48 @@ export default function RegisterPage() {
         <Text style={styles.signUpText}>I want to sign up</Text>
 
         <View style={styles.cardsContainer}>
-  <TouchableOpacity 
-    onPress={() => handleUserTypeSelection('company')}
-    style={[
-      styles.cardWrapper,
-      formData.userType === 'company' && styles.selectedCard
-    ]}
-  >
-    <LinearGradient 
-      colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
-      style={styles.card}
-    >
-      <Image 
-        source={require('@/assets/images/company-icon.png')} 
-        style={styles.cardImage} 
-      />
-      <Text style={styles.cardText}>AS A COMPANY</Text>
-    </LinearGradient>
-  </TouchableOpacity>
-  
-  <TouchableOpacity 
-    onPress={() => handleUserTypeSelection('individual')}
-    style={[
-      styles.cardWrapper,
-      formData.userType === 'individual' && styles.selectedCard
-    ]}
-  >
-    <LinearGradient 
-      colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
-      style={styles.card}
-    >
-      <Image 
-        source={require('@/assets/images/individual-icon.png')} 
-        style={styles.cardImage} 
-      />
-      <Text style={styles.cardText}>AS AN INDIVIDUAL</Text>
-    </LinearGradient>
-  </TouchableOpacity>
-</View>
+          <TouchableOpacity 
+            onPress={() => handleUserTypeSelection('company')}
+            style={[
+              styles.cardWrapper,
+              formData.userType === 'company' && styles.selectedCard
+            ]}
+          >
+            <LinearGradient 
+              colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
+              style={styles.card}
+            >
+              <Image 
+                source={require('@/assets/images/company-icon.png')} 
+                style={styles.cardImage} 
+              />
+              <Text style={styles.cardText}>AS A COMPANY</Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
-{/* Error message if no user type is selected */}
-{errors.userType && (
-  <Text style={styles.errorText}>{errors.userType}</Text>
-)}
+          <TouchableOpacity 
+            onPress={() => handleUserTypeSelection('individual')}
+            style={[
+              styles.cardWrapper,
+              formData.userType === 'individual' && styles.selectedCard
+            ]}
+          >
+            <LinearGradient 
+              colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
+              style={styles.card}
+            >
+              <Image 
+                source={require('@/assets/images/individual-icon.png')} 
+                style={styles.cardImage} 
+              />
+              <Text style={styles.cardText}>AS AN INDIVIDUAL</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
 
+        {errors.userType && (
+          <Text style={styles.errorText}>{errors.userType}</Text>
+        )}
 
         {['username', 'email', 'phone', 'address', 'postcode'].map((field, index) => (
           <View style={styles.inputContainer} key={index}>
@@ -227,6 +255,7 @@ export default function RegisterPage() {
             <Text style={styles.signInLink}>Sign In</Text>
           </TouchableOpacity>
         </View>
+
         <Modal 
           transparent={true} 
           visible={showSuccessModal} 
@@ -247,42 +276,32 @@ export default function RegisterPage() {
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalText}>{errorMessage}</Text>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setErrorModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Close</Text>
-              </TouchableOpacity>
             </View>
           </View>
         </Modal>
 
-        <Modal 
-          transparent={true} 
-          visible={usernameExistsModal} 
-          animationType="fade"
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={[styles.modalText, { color: 'red' }]}>
-                Username already exists. Please choose another username.
-              </Text>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={() => setUsernameExistsModal(false)}
-              >
-                <Text style={styles.modalButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+        <Modal transparent={true} visible={usernameExistsModal} animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>Username already exists!</Text>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* Modals remain the same */}
+      <Modal transparent={true} visible={emailExistsModal} animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>Email already exists!</Text>
+          </View>
+        </View>
+      </Modal>
+
       </ScrollView>
       </KeyboardAvoidingView>
     </ImageBackground>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { 
@@ -325,11 +344,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', 
     gap: 20, 
     width: '90%', 
-    marginBottom: 20 
+    marginBottom: 20,
   },
   cardWrapper: { 
     flex: 1, 
-    margin: 5 
+    margin: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10, 
   },
   selectedCard: { 
     borderWidth: 2, 
@@ -341,7 +363,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     width: '100%', 
     height: 140,
-    
+
     borderRadius: 10, 
     elevation: 10, 
     shadowColor: '#000', 

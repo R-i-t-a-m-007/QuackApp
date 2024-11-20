@@ -1,34 +1,49 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ImageBackground, Image, ScrollView } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, ImageBackground, Image, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 export default function PackageScreen() {
-  const router = useRouter(); // Initialize router for navigation
-  const scrollViewRef = useRef(); // Reference to the ScrollView
+  const router = useRouter();
+  const scrollViewRef = useRef();
+  const [selectedPackage, setSelectedPackage] = useState(null);
 
   const packages = [
     {
+      id: 1,
       title: 'Basic Version',
-      price: '€14.95/month',
-      features: ['Feature 1', 'Feature 2', 'Feature 3', 'Feature 4']
+      price: 14.95,
+      features: ['One Company', 'One Login', 'One Department', 'One Set of Workers'],
     },
     {
+      id: 2,
       title: 'Premium Version',
-      price: '€29.95/month',
-      features: ['Feature A', 'Feature B', 'Feature C', 'Feature D']
-    }
+      price: 29.95,
+      features: ['Many Companies', 'Many Logins', 'Many Departments', 'Multiple Worker Sets'],
+    },
   ];
 
-  // Function to handle navigation to the Register screen
-  const handleRegisterNow = () => {
-    router.push('/register'); // Navigates to the Register screen
-  };
-
   useEffect(() => {
-    // Scroll to the top when the page is loaded
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   }, []);
+
+  const handleSelectPackage = (pkgId) => {
+    setSelectedPackage(pkgId);
+  };
+
+  const handleNext = () => {
+    if (!selectedPackage) {
+      Alert.alert('No Package Selected', 'Please select a package before proceeding.');
+      return;
+    }
+
+    const selectedPackageDetails = packages.find((pkg) => pkg.id === selectedPackage);
+
+    router.push({
+      pathname: '/payment',
+      params: { price: selectedPackageDetails.price },
+    });
+  };
 
   return (
     <ImageBackground
@@ -37,27 +52,23 @@ export default function PackageScreen() {
       resizeMode="cover"
     >
       <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollViewContainer}>
-        {/* Logo and Heading */}
         <View style={styles.headerContainer}>
           <Image source={require('@/assets/images/logonew.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.heading}>Packages</Text>
           <View style={styles.underline} />
         </View>
 
-        {/* Slidable Cards */}
         <FlatList
           data={packages}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              {/* Card Header */}
+            <View style={[styles.card, selectedPackage === item.id && styles.selectedCard]}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardPrice}>{item.price}</Text>
+                <Text style={styles.cardPrice}>€{item.price.toFixed(2)}/month</Text>
               </View>
-              {/* Card Body */}
               <View style={styles.cardBody}>
                 {item.features.map((feature, index) => (
                   <View key={index} style={styles.featureItem}>
@@ -65,29 +76,28 @@ export default function PackageScreen() {
                     <Text style={styles.featureText}>{feature}</Text>
                   </View>
                 ))}
-                <TouchableOpacity style={styles.selectButton}>
+                <TouchableOpacity
+                  style={[styles.selectButton, selectedPackage === item.id && styles.selectedButton]}
+                  onPress={() => handleSelectPackage(item.id)}
+                >
                   <Text style={styles.buttonText}>Select Package</Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
-          keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={styles.carouselContainer} // Center first card on the screen
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.carouselContainer}
         />
 
-        {/* Note Section */}
-        <Text style={styles.noteText}>
-          <Text style={styles.noteBold}>Note:</Text> This is a three-line paragraph that serves as a note below the cards. You can customize this text as needed.
-        </Text>
-
-        {/* Register Now Button */}
-        <TouchableOpacity style={styles.registerButton} onPress={handleRegisterNow}>
-          <Text style={styles.registerButtonText}>Register Now</Text>
+        <TouchableOpacity style={styles.registerButton} onPress={handleNext}>
+          <Text style={styles.registerButtonText}>Next</Text>
         </TouchableOpacity>
       </ScrollView>
     </ImageBackground>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -136,7 +146,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
-    elevation: 5
+    elevation: 5,
+    borderWidth: 0, // Default no border
+    borderColor: 'white' // Default border color
+  },
+  selectedCard: {
+    borderWidth: 2, // Add border when selected
+    borderColor: 'white', // White border for selected package
+    borderRadius: 10,
   },
   cardHeader: {
     backgroundColor: '#d94e04',
@@ -149,17 +166,17 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: 'white'
+    color: 'white',
   },
   cardPrice: {
     fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
-    marginTop: 5
+    marginTop: 5,
   },
   cardBody: {
     padding: 15,
-    alignItems: 'center'
+    alignItems: 'start'
   },
   featureItem: {
     flexDirection: 'row',
@@ -179,6 +196,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     width: '100%'
+  },
+  selectedButton: {
+    backgroundColor: 'gray', // Change button color when selected
   },
   buttonText: {
     color: 'white',

@@ -3,9 +3,10 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ImageBackgr
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
+
 const { height, width } = Dimensions.get('window');
 
-export default function HomePage() {
+export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -13,7 +14,7 @@ export default function HomePage() {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://192.168.1.17:5000/api/auth/login', {
+      const response = await fetch('http://192.168.1.12:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
