@@ -36,14 +36,17 @@ export default function PackageScreen() {
       Alert.alert('No Package Selected', 'Please select a package before proceeding.');
       return;
     }
-
-    const selectedPackageDetails = packages.find((pkg) => pkg.id === selectedPackage);
-
-    router.push({
-      pathname: '/payment',
-      params: { price: selectedPackageDetails.price },
-    });
+  
+    if (selectedPackage === 2) {
+      router.push('/agencydash');
+    } else {
+      Alert.alert(
+        'Restricted Access',
+        'This feature is available only with the Premium Version.'
+      );
+    }
   };
+  
 
   return (
     <ImageBackground

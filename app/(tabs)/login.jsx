@@ -87,6 +87,12 @@ export default function Login() {
               <Text style={styles.signUpLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity 
+            style={styles.calendarLinkContainer} 
+            onPress={() => router.push('/calendar')}
+          >
+            <Text style={styles.calendarLinkText}>Check Calendar Demo</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
 
@@ -114,6 +120,18 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
+  calendarLinkContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  calendarLinkText: {
+    marginLeft: 5,
+    color: '#fff',
+    fontSize: 16,
+    textDecorationLine: 'underline',
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
