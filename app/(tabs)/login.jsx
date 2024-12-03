@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ImageBackground, Alert, Modal, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
 
 const { height, width } = Dimensions.get('window');
@@ -10,14 +11,20 @@ export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [userType, setUserType] = useState(null); // For user type selection
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const handleLogin = async () => {
+    if (!userType) {
+      Alert.alert('Error', 'Please select a user type.');
+      return;
+    }
+
     try {
-      const response = await fetch('http://192.168.1.12:5000/api/auth/login', {
+      const response = await fetch('http://192.168.1.5:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, userType }),
       });
       const data = await response.json();
 
@@ -33,9 +40,9 @@ export default function Login() {
   };
 
   return (
-    <ImageBackground 
-      source={require('@/assets/images/main-bg.jpg')} 
-      style={styles.container} 
+    <ImageBackground
+      source={require('@/assets/images/main-bg.jpg')}
+      style={styles.container}
       resizeMode="cover"
     >
       <KeyboardAvoidingView
@@ -44,13 +51,53 @@ export default function Login() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
         <View style={styles.content}>
-          <Image 
-            source={require('@/assets/images/logo-with-glow-new.png')} 
-            style={styles.logo} 
-            resizeMode="contain" 
+          <Image
+            source={require('@/assets/images/logo-with-glow-new.png')}
+            style={styles.logo}
+            resizeMode="contain"
           />
           <Text style={styles.loginText}>LOGIN</Text>
           <View style={styles.underline} />
+
+          {/* User Type Selection */}
+          <View style={styles.cardContainer}>
+            <TouchableOpacity
+              style={[
+                styles.cardWrapper,
+                userType === 'company' ? styles.cardSelected : null,
+              ]}
+              onPress={() => setUserType('company')}
+            >
+              <LinearGradient 
+                colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
+                style={styles.card}
+              >
+                <Image 
+                  source={require('@/assets/images/company-icon.png')} 
+                  style={styles.cardImage} 
+                />
+                <Text style={styles.cardText}>AS A COMPANY</Text>
+              </LinearGradient>            
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.cardWrapper,
+                userType === 'individual' ? styles.cardSelected : null,
+              ]}
+              onPress={() => setUserType('individual')}
+            >
+                <LinearGradient 
+                colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
+                style={styles.card}
+              >
+                <Image 
+                  source={require('@/assets/images/individual-icon.png')} 
+                  style={styles.cardImage} 
+                />
+                <Text style={styles.cardText}>AS AN INDIVIDUAL</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.inputContainer}>
             <Ionicons name="person" size={20} color="white" style={styles.icon} />
@@ -87,12 +134,6 @@ export default function Login() {
               <Text style={styles.signUpLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity 
-            style={styles.calendarLinkContainer} 
-            onPress={() => router.push('/calendar')}
-          >
-            <Text style={styles.calendarLinkText}>Check Calendar Demo</Text>
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
 
@@ -120,18 +161,6 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  calendarLinkContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  calendarLinkText: {
-    marginLeft: 5,
-    color: '#fff',
-    fontSize: 16,
-    textDecorationLine: 'underline',
-  },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -153,8 +182,8 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   logo: {
-    width: 200,
-    height: 200,
+    width: 150,
+    height: 150,
     marginBottom: 0,
     alignSelf: 'center',
   },
@@ -171,6 +200,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginBottom: 20,
     alignSelf: 'center',
+  },
+  cardContainer: {
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    gap: 20, 
+    width: '90%', 
+    marginBottom: 20,
+  },
+  cardWrapper: { 
+    flex: 1, 
+    margin: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10, 
+  },
+  card: {
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    width: '100%', 
+    height: 140,
+
+    borderRadius: 10, 
+    elevation: 10, 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 0 }, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 5 
+  },
+  cardSelected: {
+    borderWidth: 2, 
+    borderColor: 'white',
+    borderRadius: 10 
+  },
+  cardImage: { 
+    width: 100, 
+    height: 100, 
+    marginBottom: 10 
+  },
+  cardText: {
+    fontSize: 12, 
+    color: 'black', 
+    fontWeight: 'bold' 
   },
   inputContainer: {
     flexDirection: 'row',
@@ -219,8 +290,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textDecorationLine: 'underline',
   },
-
-  // Modal styles
   modalContainer: { 
     flex: 1, 
     justifyContent: 'center', 
@@ -256,3 +325,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold' 
   },
 });
+

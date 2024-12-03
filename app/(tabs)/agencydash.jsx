@@ -1,17 +1,59 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ImageBackground, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
+import { ActivityIndicator } from 'react-native';
 
 export default function AgencyDash() {
   const router = useRouter();
+  const [totalCompanies, setTotalCompanies] = useState(0); // Store the total companies
+  const [loading, setLoading] = useState(false); // To control the loading state
+
+  // Function to fetch the total number of companies
+  const fetchTotalCompanies = async () => {
+    setLoading(true); // Start loading
+    try {
+      const response = await fetch('http://192.168.1.5:5000/api/companies/list'); // Adjust URL accordingly
+      const data = await response.json();
+      if (response.ok) {
+        setTotalCompanies(data.length); // Assuming the data is an array of companies
+      } else {
+        console.error('Error fetching total companies:', data.message);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false); // Stop loading after the request is finished
+    }
+  };
+
+  // Fetch total companies whenever the screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchTotalCompanies(); // Reload companies when screen is focused
+    }, [])
+  );
+
+  // Handle navigation to company list after fetching data
+  const handleCompanyListNavigation = async () => {
+    setLoading(true);
+    await fetchTotalCompanies(); // Ensure you fetch total companies data first
+    
+    // Pass the totalCompanies count as a query parameter
+    router.push({
+      pathname: '/companylist',
+      query: { totalCompanies: totalCompanies.toString() }, // Pass as string
+    });
+  };
+  
+  
+  
 
   return (
     <>
-      {/* This will add space for the status bar */}
       <StatusBar barStyle="light-content" />
-      
       <ImageBackground
         source={require('@/assets/images/main-bg.jpg')}
         style={styles.container}
@@ -37,41 +79,40 @@ export default function AgencyDash() {
               <Ionicons name="person" size={50} color="white" />
             </LinearGradient>
           </View>
-          <Text style={styles.greeting}>Hi, John Doe</Text>
+          <Text style={styles.greeting}>Hi, there</Text>
           <Text style={styles.welcome}>Welcome back</Text>
         </View>
 
         <View style={styles.cardSection}>
           <View style={styles.cardRow}>
-            <TouchableOpacity style={styles.cardWrapper}
-                onPress={() => router.push('/companylist')}
-            >
+            <TouchableOpacity style={styles.cardWrapper} onPress={handleCompanyListNavigation}>
               <LinearGradient
                 colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
                 style={styles.card}
               >
                 <Image
-                  source={require('@/assets/images/company.png')} // Image for Statistics card
+                  source={require('@/assets/images/company.png')}
                   style={styles.cardImage}
                 />
                 <Text style={styles.cardText}>TOTAL COMPANY</Text>
-                <Text style={styles.cardText2}>{"08"}</Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.cardText2}>{totalCompanies}</Text> // Display total companies
+                )}
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.cardWrapper}
-                onPress={() => router.push('/addcompany')}
-            >
+            <TouchableOpacity style={styles.cardWrapper} onPress={() => router.push('/addcompany')}>
               <LinearGradient
                 colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
                 style={styles.card}
               >
                 <Image
-                  source={require('@/assets/images/add-company.png')} // Image for Statistics card
+                  source={require('@/assets/images/add-company.png')}
                   style={styles.cardImage}
                 />
                 <Text style={styles.cardText}>ADD COMPANY</Text>
-                <Text style={styles.cardText2}>{"08"}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -82,7 +123,7 @@ export default function AgencyDash() {
               style={styles.card}
             >
               <Image
-                source={require('@/assets/images/my-account.png')} // Image for Statistics card
+                source={require('@/assets/images/my-account.png')}
                 style={styles.cardImage}
               />
               <Text style={styles.cardText}>MY ACCOUNT</Text>
@@ -103,7 +144,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     backgroundColor: 'transparent',
-    paddingTop: 30,  // This leaves space for the status bar
+    paddingTop: 30,
   },
   navbar: {
     flexDirection: 'row',
@@ -111,7 +152,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     padding: 20,
-    paddingTop: 20,  // Adjusted for status bar
+    paddingTop: 20,
   },
   navTitle: {
     fontSize: 20,

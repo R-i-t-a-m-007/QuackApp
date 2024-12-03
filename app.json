@@ -1,7 +1,7 @@
 {
   "expo": {
     "newArchEnabled": true,
-    "name": "my-app",
+    "name": "Quack App",
     "slug": "my-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +14,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ritam2024.QuackApp"
     },
     "android": {
       "adaptiveIcon": {
@@ -33,6 +34,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "ritam2024",
+    "extra": {
+      "eas": {
+        "projectId": "d16ca797-37f2-4cb7-998c-408cbcc6cfde"
+      }
     }
   }
 }

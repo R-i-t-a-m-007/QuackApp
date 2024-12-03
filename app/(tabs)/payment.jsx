@@ -20,7 +20,7 @@ export default function PaymentScreen() {
     const setupPaymentSheet = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://192.168.1.12:5000/api/payment-intent', {
+        const response = await fetch('http://192.168.1.5:5000/api/payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: parseFloat(price) * 100 }), // Convert to cents
