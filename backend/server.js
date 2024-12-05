@@ -1,11 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
-import companyRoutes from './routes/companyRoutes.js'; // Import the new routes
-
+import companyRoutes from './routes/companyRoutes.js';
 
 dotenv.config();
 
@@ -14,11 +15,27 @@ connectDB();
 
 const app = express();
 
+// Configure session middleware
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 1000 * 60 * 60 * 24,
+      httpOnly: true,  // Prevent JS from accessing cookie
+      secure: false,   // Set to true if using HTTPS
+      sameSite: 'lax',
+     }, // 1-day cookie
+    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  })
+);
+
 // Configure CORS
 app.use(
   cors({
-    origin: '*', // Allow any origin (use caution in production)
-    methods: ['GET', 'POST'], // Allowed HTTP methods
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true, // Allow cookies
   })
 );
 
@@ -27,10 +44,10 @@ app.use(express.json());
 
 // Define routes
 app.use('/api/auth', authRoutes);
-app.use('/api/payment', paymentRoutes); // Payment routes placeholder
-app.use('/api/companies', companyRoutes); // Add company routes
-
+app.use('/api/payment', paymentRoutes);
+app.use('/api/companies', companyRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+

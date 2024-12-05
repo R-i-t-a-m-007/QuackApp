@@ -7,6 +7,7 @@ export default function PackageScreen() {
   const router = useRouter();
   const scrollViewRef = useRef();
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [userType, setUserType] = useState(null); // State to store userType
 
   const packages = [
     {
@@ -25,6 +26,28 @@ export default function PackageScreen() {
 
   useEffect(() => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+
+    // Fetch session data to get userType
+    const fetchSessionData = async () => {
+      try {
+        const response = await fetch('http://192.168.1.5:5000/api/auth/session', {
+          method: 'GET',
+          credentials: 'include', // Ensures session cookie is sent
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch session data.');
+        }
+
+        const data = await response.json();
+        setUserType(data.userType); // Set userType from session
+      } catch (error) {
+        console.error('Error fetching session data:', error);
+        Alert.alert('Error', 'Failed to fetch session data.');
+      }
+    };
+
+    fetchSessionData();
   }, []);
 
   const handleSelectPackage = (pkgId) => {
@@ -36,17 +59,16 @@ export default function PackageScreen() {
       Alert.alert('No Package Selected', 'Please select a package before proceeding.');
       return;
     }
-  
-    if (selectedPackage === 2) {
-      router.push('/agencydash');
-    } else {
+
+    if (userType === 'individual' && selectedPackage === 2) {
       Alert.alert(
         'Restricted Access',
-        'This feature is available only with the Premium Version.'
+        'This feature is available only with the Premium Version for companies.'
       );
+    } else {
+      router.push('/agencydash');
     }
   };
-  
 
   return (
     <ImageBackground
@@ -99,6 +121,7 @@ export default function PackageScreen() {
     </ImageBackground>
   );
 }
+
 
 
 

@@ -117,7 +117,9 @@ export default function AgencyDash() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.cardWrapper}>
+          <TouchableOpacity style={styles.cardWrapper}
+            onPress={() => router.push('/myaccount')}
+          >
             <LinearGradient
               colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
               style={styles.card}
