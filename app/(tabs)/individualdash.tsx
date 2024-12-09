@@ -6,50 +6,36 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
 import { ActivityIndicator } from 'react-native';
 
-export default function AgencyDash() {
+export default function IndividualDash() {
   const router = useRouter();
-  const [totalCompanies, setTotalCompanies] = useState(0); // Store the total companies
+  const [totalWorkers, setTotalWorkers] = useState(0); // Store the total workers
   const [loading, setLoading] = useState(false); // To control the loading state
 
-  // Function to fetch the total number of companies
-  const fetchTotalCompanies = async () => {
-    setLoading(true); // Start loading
+  // Function to fetch the total number of workers
+  const fetchTotalWorkers = async () => {
+    setLoading(true);
     try {
-      const response = await fetch('http://192.168.1.5:5000/api/companies/list'); // Adjust URL accordingly
+      const response = await fetch('http://192.168.1.5:5000/api/workers/list');
       const data = await response.json();
-      if (response.ok) {
-        setTotalCompanies(data.length); // Assuming the data is an array of companies
-      } else {
-        console.error('Error fetching total companies:', data.message);
-      }
+      setTotalWorkers(data.length);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching workers:', error);
     } finally {
-      setLoading(false); // Stop loading after the request is finished
+      setLoading(false);
     }
   };
 
-  // Fetch total companies whenever the screen is focused
+  // Fetch total workers whenever the screen is focused
   useFocusEffect(
     React.useCallback(() => {
-      fetchTotalCompanies(); // Reload companies when screen is focused
+      fetchTotalWorkers();
     }, [])
   );
 
-  // Handle navigation to company list after fetching data
-  const handleCompanyListNavigation = async () => {
-    setLoading(true);
-    await fetchTotalCompanies(); // Ensure you fetch total companies data first
-    
-    // Pass the totalCompanies count as a query parameter
-    router.push({
-      pathname: '/companylist',
-      query: { totalCompanies: totalCompanies.toString() }, // Pass as string
-    });
+  // Handle navigation to worker list after fetching data
+  const goToWorkerList = () => {
+    router.push('/workerlist');
   };
-  
-  
-  
 
   return (
     <>
@@ -63,7 +49,7 @@ export default function AgencyDash() {
           colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
           style={styles.navbar}
         >
-          <TouchableOpacity onPress={() => router.push('/packagescreen')}>
+          <TouchableOpacity onPress={() => router.push('/agencydash')}>
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.navTitle}>Dashboard</Text>
@@ -85,61 +71,63 @@ export default function AgencyDash() {
 
         <View style={styles.cardSection}>
           <View style={styles.cardRow}>
-            <TouchableOpacity style={styles.cardWrapper} onPress={handleCompanyListNavigation}>
+            <TouchableOpacity style={styles.cardWrapper} onPress={goToWorkerList}>
               <LinearGradient
                 colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
                 style={styles.card}
               >
-                <Image
-                  source={require('@/assets/images/company.png')}
-                  style={styles.cardImage}
-                />
-                <Text style={styles.cardText}>TOTAL COMPANY</Text>
+                <Ionicons name="people" size={50} color="black" />
+                <Text style={styles.cardText}>TOTAL WORKER</Text>
                 {loading ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <Text style={styles.cardText2}>{totalCompanies}</Text> // Display total companies
+                  <Text style={styles.cardText2}>{totalWorkers}</Text> // Display total workers
                 )}
               </LinearGradient>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.cardWrapper} onPress={() => router.push('/addcompany')}>
+            <TouchableOpacity style={styles.cardWrapper} onPress={() => router.push('/addworker')}>
               <LinearGradient
                 colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
                 style={styles.card}
               >
-                <Image
-                  source={require('@/assets/images/add-company.png')}
-                  style={styles.cardImage}
-                />
-                <Text style={styles.cardText}>ADD COMPANY</Text>
+                <Ionicons name="add-circle" size={50} color="black" />
+                <Text style={styles.cardText}>ADD WORKER</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.cardWrapper}
-            onPress={() => router.push('/myaccount')}
-          >
-            <LinearGradient
-              colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
-              style={styles.card}
-            >
-              <Image
-                source={require('@/assets/images/my-account.png')}
-                style={styles.cardImage}
-              />
-              <Text style={styles.cardText}>MY ACCOUNT</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <View style={styles.cardRow}>
+            <TouchableOpacity style={styles.cardWrapper}>
+              <LinearGradient
+                colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
+                style={styles.card}
+              >
+                <Ionicons name="briefcase" size={50} color="black" />
+                <Text style={styles.cardText}>CREATE JOBS</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.cardWrapper} onPress={() => router.push('/myaccount')}>
+              <LinearGradient
+                colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
+                style={styles.card}
+              >
+                <Ionicons name="person-circle" size={50} color="black" />
+                <Text style={styles.cardText}>MY ACCOUNT</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.cancelButton} onPress={() => router.push('/individualdash')}>
+        <TouchableOpacity style={styles.cancelButton}>
           <Text style={styles.cancelButtonText}>Cancel Subscription</Text>
         </TouchableOpacity>
       </ImageBackground>
     </>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -242,7 +230,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     alignItems: 'center',
     width: '90%',
-    marginTop: 20,
+    marginTop: 0,
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 5 },

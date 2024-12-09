@@ -398,6 +398,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
   },
   cardContent: {
+    padding: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },

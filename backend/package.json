@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@react-native-community/datetimepicker": "github:react-native-community/datetimepicker",
     "@stripe/stripe-js": "github:stripe/stripe-js",
     "@stripe/stripe-react-native": "^0.39.0",
     "bcrypt": "^5.1.1",

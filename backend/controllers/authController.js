@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import Company from '../models/Company.js';
 import Individual from '../models/Individual.js';
 
+
 export const registerUser = async (req, res) => {
   const { username, email, phone, address, postcode, password, userType } = req.body;
 
