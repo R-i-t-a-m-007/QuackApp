@@ -1,13 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ImageBackground, Image, ScrollView, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  FlatList, 
+  ImageBackground, 
+  Image, 
+  ScrollView, 
+  Alert,
+  Linking 
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useStripe } from '@stripe/stripe-react-native'; // Import Stripe SDK
 
-export default function PackageScreen() {
+const PackageScreen = () => {
   const router = useRouter();
   const scrollViewRef = useRef();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe(); // Initialize Stripe hooks
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [userType, setUserType] = useState(null); // State to store userType
+  const [userType, setUserType] = useState(null);
+  const [loading, setLoading] = useState(false); // Loading state for button
 
   const packages = [
     {
@@ -24,15 +38,15 @@ export default function PackageScreen() {
     },
   ];
 
+  // Fetch session data on component mount
   useEffect(() => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
 
-    // Fetch session data to get userType
     const fetchSessionData = async () => {
       try {
         const response = await fetch('http://192.168.1.5:5000/api/auth/session', {
           method: 'GET',
-          credentials: 'include', // Ensures session cookie is sent
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -40,7 +54,7 @@ export default function PackageScreen() {
         }
 
         const data = await response.json();
-        setUserType(data.userType); // Set userType from session
+        setUserType(data.userType); // Set user type based on session
       } catch (error) {
         console.error('Error fetching session data:', error);
         Alert.alert('Error', 'Failed to fetch session data.');
@@ -50,11 +64,66 @@ export default function PackageScreen() {
     fetchSessionData();
   }, []);
 
+  // Handle selecting a package
   const handleSelectPackage = (pkgId) => {
     setSelectedPackage(pkgId);
   };
 
-  const handleNext = () => {
+  // Create a Payment Intent and initialize PaymentSheet
+  // Example: Log clientSecret on frontend for debugging
+const initializePaymentSheet = async (priceId) => {
+  setLoading(true);
+  try {
+    const response = await fetch('http://192.168.1.5:5000/api/stripe/create-checkout-session', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ priceId }),
+    });
+
+    const { clientSecret } = await response.json();
+    console.log('Received clientSecret:', clientSecret); // Log clientSecret for debugging
+
+    if (!clientSecret) {
+      throw new Error('PaymentIntent client secret is missing.');
+    }
+
+    const { error } = await initPaymentSheet({
+      paymentIntentClientSecret: clientSecret,
+      returnURL: Linking.openURL('/agencydash'), // May need to change this URL depending on your setup
+    });
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(false);
+    openPaymentSheet();
+  } catch (error) {
+    console.error('Error initializing payment sheet:', error);
+    Alert.alert('Error', 'Unable to process payment at the moment.');
+    setLoading(false);
+  }
+};
+
+
+  // Present the Payment Sheet
+  const openPaymentSheet = async () => {
+    const { error } = await presentPaymentSheet();
+
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      Alert.alert('Success', 'Payment successful!');
+      router.push('/agencydash'); // Navigate to confirmation page (or other logic)
+    }
+  };
+
+  // Handle Next button press
+  const handleNext = async () => {
     if (!selectedPackage) {
       Alert.alert('No Package Selected', 'Please select a package before proceeding.');
       return;
@@ -63,11 +132,17 @@ export default function PackageScreen() {
     if (userType === 'individual' && selectedPackage === 2) {
       Alert.alert(
         'Restricted Access',
-        'This feature is available only with the Premium Version for companies.'
+        'Premium Version is available only for companies. Please choose the Basic Version.'
       );
-    } else {
-      router.push('/agencydash');
+      return;
     }
+
+    const priceId =
+      selectedPackage === 1
+        ? 'price_1QU1Mq02CrK5yqCqx9csNo64' // Replace with Stripe Price ID for Basic
+        : 'price_1QU1Nt02CrK5yqCqi9yehdop'; // Replace with Stripe Price ID for Premium
+
+    initializePaymentSheet(priceId); // Initialize and show the payment sheet
   };
 
   return (
@@ -114,29 +189,34 @@ export default function PackageScreen() {
           contentContainerStyle={styles.carouselContainer}
         />
 
-        <TouchableOpacity style={styles.registerButton} onPress={handleNext}>
-          <Text style={styles.registerButtonText}>Next</Text>
+        <TouchableOpacity 
+          style={styles.registerButton} 
+          onPress={handleNext}
+          disabled={loading}
+        >
+          <Text style={styles.registerButtonText}>
+            {loading ? 'Processing...' : 'Next'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </ImageBackground>
   );
-}
+};
 
-
-
+export default PackageScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 40, // Adjusted the paddingTop to reduce excessive gap
+    paddingTop: 40, 
     backgroundColor: '#f0f0f0'
   },
   scrollViewContainer: {
     flexGrow: 1,
     alignItems: 'center',
-    paddingVertical: 10, // Ensure there's space at the top and bottom
+    paddingVertical: 10, 
   },
   headerContainer: {
     alignItems: 'center',
@@ -145,7 +225,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 100,
     height: 100,
-    marginBottom: 5, // Reduced margin to bring logo closer
+    marginBottom: 5, 
   },
   heading: {
     fontSize: 24,
@@ -160,7 +240,7 @@ const styles = StyleSheet.create({
   },
   carouselContainer: {
     alignItems: 'center',
-    paddingVertical: 0, // Reduced vertical padding to close the gap
+    paddingVertical: 0, 
   },
   card: {
     backgroundColor: 'white',
@@ -173,12 +253,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
-    borderWidth: 0, // Default no border
-    borderColor: 'white' // Default border color
+    borderWidth: 0, 
+    borderColor: 'white' 
   },
   selectedCard: {
-    borderWidth: 2, // Add border when selected
-    borderColor: 'white', // White border for selected package
+    borderWidth: 2, 
+    borderColor: 'white',
     borderRadius: 10,
   },
   cardHeader: {
@@ -224,20 +304,10 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   selectedButton: {
-    backgroundColor: 'gray', // Change button color when selected
+    backgroundColor: 'gray', 
   },
   buttonText: {
     color: 'white',
-    fontWeight: 'bold'
-  },
-  noteText: {
-    color: '#fff',
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 10
-  },
-  noteBold: {
     fontWeight: 'bold'
   },
   registerButton: {
