@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ImageBackground, ScrollView, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ImageBackground, ScrollView, Modal, KeyboardAvoidingView, Platform, StatusBar, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const { height, width } = Dimensions.get('window');
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -14,15 +16,14 @@ export default function RegisterPage() {
     address: '',
     postcode: '',
     password: '',
-    userType: ''
+    package: '', // Keep package empty for now
   });
 
   const [errors, setErrors] = useState({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [usernameExistsModal, setUsernameExistsModal] = useState(false);
-  const [emailExistsModal, setEmailExistsModal] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state
 
   useEffect(() => {
     setFormData({
@@ -32,21 +33,10 @@ export default function RegisterPage() {
       address: '',
       postcode: '',
       password: '',
-      userType: ''
+      package: '', // Keep package empty for now
     });
     setErrors({});
   }, []);
-
-  const handleUserTypeSelection = (type) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      userType: type
-    }));
-    setErrors((prevData) => ({
-      ...prevData,
-      userType: '' // Clear the error when a user type is selected
-    }));
-  };
 
   const handleInputChange = (field, value) => {
     setFormData((prevState) => ({ ...prevState, [field]: value }));
@@ -58,7 +48,7 @@ export default function RegisterPage() {
 
     // Validate required fields
     Object.keys(formData).forEach((field) => {
-      if (field !== 'userType' && !formData[field]) {
+      if (field !== 'package' && !formData[field]) { // Exclude package from validation
         newErrors[field] = 'Please enter this field';
       }
     });
@@ -80,11 +70,6 @@ export default function RegisterPage() {
       newErrors.password = 'Password must be at least 8 characters';
     }
 
-    // Validate userType
-    if (!formData.userType) {
-      newErrors.userType = 'Please select a user type';
-    }
-
     return newErrors;
   };
 
@@ -95,224 +80,167 @@ export default function RegisterPage() {
       return;
     }
   
+    setLoading(true); // Start loading
+  
+    // Create a copy of formData to avoid mutating the original state
+    const dataToSend = { ...formData };
+  
+    // Remove package if it's empty
+    if (!dataToSend.package) {
+      delete dataToSend.package;
+    }
+  
     try {
-      const response = await fetch('http://192.168.1.5:5000/api/auth/register', {
+      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSend),
       });
       const data = await response.json();
+  
+      setLoading(false); // Stop loading
   
       if (response.ok) {
         setShowSuccessModal(true);
         setTimeout(() => {
           setShowSuccessModal(false);
-          router.push('/login');
+          router.push('/packagescreen'); // Redirect to login after successful registration
         }, 2000);
       } else {
-        if (data.message === 'Username already exists.') {
-          setUsernameExistsModal(true);
-          // Hide the modal after 2 seconds
-          setTimeout(() => {
-            setUsernameExistsModal(false);
-          }, 2000);
-        } else if (data.message === 'Email already exists.') {
-          setEmailExistsModal(true);
-          // Hide the modal after 2 seconds
-          setTimeout(() => {
-            setEmailExistsModal(false);
-          }, 2000);
-        } else {
-          setErrorMessage(data.message || 'Registration failed. Please check your details.');
-          setErrorModalVisible(true);
-        }
+        // Use the existing error handling for displaying the error message
+        setErrorMessage(data.message || 'Registration failed. Please check your details.');
+        setErrorModalVisible(true);
+        // Automatically close the modal after 2 seconds
+        setTimeout(() => {
+          setErrorModalVisible(false);
+        }, 1500);
       }
     } catch (error) {
+      setLoading(false); // Stop loading
       setErrorMessage('Something went wrong. Please try again later.');
       setErrorModalVisible(true);
     }
   };
-  
 
   return (
-    <ImageBackground 
-      source={require('@/assets/images/main-bg.jpg')} 
-      style={styles.container} 
-      resizeMode="cover"
-    >
-      <KeyboardAvoidingView 
-        style={{ flex: 1 }} 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <>
+      <StatusBar barStyle="light-content" />
+      <ImageBackground 
+        source={require('@/assets/images/main-bg.jpg')} 
+        style={styles.container} 
+        resizeMode="cover"
       >
-      <ScrollView 
-        contentContainerStyle={styles.scrollViewContent} 
-        showsVerticalScrollIndicator={false}
-      >
-        <Image 
-          source={require('@/assets/images/logo-with-glow-new.png')} 
-          style={styles.logo} 
-          resizeMode="contain" 
-        />
-        
-        <Text style={styles.registerText}>REGISTRATION</Text>
-        <View style={styles.underline} />
-        <Text style={styles.signUpText}>I want to sign up</Text>
-
-        <View style={styles.cardsContainer}>
-          <TouchableOpacity 
-            onPress={() => handleUserTypeSelection('company')}
-            style={[
-              styles.cardWrapper,
-              formData.userType === 'company' && styles.selectedCard
-            ]}
+        <KeyboardAvoidingView 
+          style={{ flex: 1 }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <ScrollView 
+            contentContainerStyle={styles.scrollViewContent} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <LinearGradient 
-              colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
-              style={styles.card}
-            >
-              <Image 
-                source={require('@/assets/images/company-icon.png')} 
-                style={styles.cardImage} 
-              />
-              <Text style={styles.cardText}>AS A COMPANY</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            onPress={() => handleUserTypeSelection('individual')}
-            style={[
-              styles.cardWrapper,
-              formData.userType === 'individual' && styles.selectedCard
-            ]}
-          >
-            <LinearGradient 
-              colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
-              style={styles.card}
-            >
-              <Image 
-                source={require('@/assets/images/individual-icon.png')} 
-                style={styles.cardImage} 
-              />
-              <Text style={styles.cardText}>AS AN INDIVIDUAL</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {errors.userType && (
-          <Text style={styles.errorText}>{errors.userType}</Text>
-        )}
-
-        {['username', 'email', 'phone', 'address', 'postcode'].map((field, index) => (
-          <View style={styles.inputContainer} key={index}>
-            <Ionicons 
-              name={field === 'username' ? 'person' : 
-                    field === 'email' ? 'mail' : 
-                    field === 'phone' ? 'call' : 
-                    field === 'address' ? 'location' : 'home'} 
-              size={20} 
-              color="white" 
-              style={styles.icon} 
+            <Image 
+              source={require('@/assets/images/logo-with-glow-new.png')} 
+              style={styles.logo} 
+              resizeMode="contain" 
             />
-            <TextInput
-              style={[styles.input, errors[field] && styles.inputError]}
-              placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-              placeholderTextColor="white"
-              value={formData[field]}
-              onChangeText={(text) => handleInputChange(field, text)}
-            />
-            {errors[field] && <Text style={styles.errorText}>{errors[field]}</Text>}
-          </View>
-        ))}
+            
+            <Text style={styles.registerText}>REGISTRATION</Text>
+            <View style={styles.underline} />
 
-        <View style={styles.inputContainer}>
-          <Ionicons 
-            name="lock-closed" 
-            size={20} 
-            color="white" 
-            style={styles.icon} 
-          />
-          <TextInput
-            style={[styles.input, errors.password && styles.inputError]}
-            placeholder="Password"
-            placeholderTextColor="white"
-            value={formData.password}
-            onChangeText={(text) => handleInputChange('password', text)}
-            secureTextEntry
-          />
-          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-        </View>
+            {['username', 'email', 'phone', 'address', 'postcode', 'password'].map((field, index) => (
+              <View style={styles.inputContainer} key={index}>
+                <Ionicons 
+                  name={field === 'username' ? 'person' : 
+                        field === 'email' ? 'mail' : 
+                        field === 'phone' ? 'call' : 
+                        field === 'address' ? 'location' : 'home'} 
+                  size={20} 
+                  color="white" 
+                  style={styles.icon} 
+                />
+                <TextInput
+                  style={[styles.input, errors[field] && styles.inputError]}
+                  placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                  placeholderTextColor="white"
+                  value={formData[field]}
+                  onChangeText={(text) => handleInputChange(field, text)}
+                  keyboardType={field === 'phone' ? 'phone-pad' : 'default'}
+                  secureTextEntry={field === 'password'}
+                />
+                {errors[field] && <Text style={styles.errorText}>{errors[field]}</Text>}
+              </View>
+            ))}
 
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={handleRegister}
-        >
-          <Text style={styles.buttonText}>Next</Text>
-        </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.button} 
+              onPress={handleRegister}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Register</Text>}
+            </TouchableOpacity>
 
-        <View style={styles.signInContainer}>
-          <Text style={styles.signInText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.push('/login')}>
-            <Text style={styles.signInLink}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
+            {loading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="white" />
+                <Text style={styles.loadingText}>Registering...</Text>
+              </View>
+            )}
 
-        <Modal 
-          transparent={true} 
-          visible={showSuccessModal} 
-          animationType="fade"
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalText}>Registration Successful!</Text>
+            <View style={styles.signInContainer}>
+              <Text style={styles.signInText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/login')}>
+                <Text style={styles.signInLink}>Sign In</Text>
+              </TouchableOpacity>
             </View>
-          </View>
-        </Modal>
 
-        <Modal 
-          transparent={true} 
-          visible={errorModalVisible} 
-          animationType="fade"
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalText}>{errorMessage}</Text>
-            </View>
-          </View>
-        </Modal>
+            <Modal 
+              transparent={true} 
+              visible={showSuccessModal} 
+              animationType="fade"
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalText}>Registration Successful!</Text>
+                </View>
+              </View>
+            </Modal>
 
-        <Modal transparent={true} visible={usernameExistsModal} animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>Username already exists!</Text>
-          </View>
-        </View>
-      </Modal>
+            <Modal 
+              transparent={true} 
+              visible={errorModalVisible} 
+              animationType="fade"
+            >
+              <View style={styles.modalContainer}>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalText}>{errorMessage}</Text>
+                </View>
+              </View>
+            </Modal>
 
-      <Modal transparent={true} visible={emailExistsModal} animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>Email already exists!</Text>
-          </View>
-        </View>
-      </Modal>
-
-      </ScrollView>
-      </KeyboardAvoidingView>
-    </ImageBackground>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </ImageBackground>
+    </>
   );
 }
 
-
 const styles = StyleSheet.create({
+  safeArea:{
+    flex:1,
+    backgroundColor: '#f3ae0a',
+  },
   container: { 
     flex: 1, 
     justifyContent: 'center', 
-    paddingHorizontal: 20 
+    paddingHorizontal: 20,
+    width: width,
+    height: height, 
   },
   scrollViewContent: { 
     flexGrow: 1, 
     justifyContent: 'center', 
-     paddingTop: 40, 
+    paddingTop: 40, 
     paddingBottom: 40, 
     alignItems: 'center' 
   },
@@ -333,58 +261,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', 
     marginBottom: 20 
   },
-  signUpText: { 
-    fontSize: 18, 
-    fontWeight: 'normal', 
-    color: '#fff', 
-    marginBottom: 20 
-  },
-  cardsContainer: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    gap: 20, 
-    width: '90%', 
-    marginBottom: 20,
-  },
-  cardWrapper: { 
-    flex: 1, 
-    margin: 5,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10, 
-  },
-  selectedCard: { 
-    borderWidth: 2, 
-    borderColor: 'white',
-    borderRadius: 10 
-  },
-  card: { 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    width: '100%', 
-    height: 140,
-
-    borderRadius: 10, 
-    elevation: 10, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 0 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 5 
-  },
-  cardImage: { 
-    width: 100, 
-    height: 100, 
-    marginBottom: 10 
-  },
-  cardText: { 
-    fontSize: 12, 
-    color: 'black', 
-    fontWeight: 'bold' 
-  },
   inputContainer: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+    backgroundColor: 'rgba(0, 0, 0,  0.5)', 
     borderRadius: 25, 
     paddingHorizontal: 15, 
     marginVertical: 5, 
@@ -407,7 +287,7 @@ const styles = StyleSheet.create({
     color: 'red', 
     fontSize: 12, 
     marginTop: 5,
-    marginBottom:5, 
+    marginBottom: 5, 
     marginLeft: 15 
   },
   button: { 
@@ -453,15 +333,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold', 
     color: 'green' 
   },
-  modalButton: { 
-    backgroundColor: 'red', 
-    padding: 10, 
-    marginTop: 10, 
-    borderRadius: 5 
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  modalButtonText: { 
-    color: '#fff', 
-    fontSize: 16, 
-    fontWeight: 'bold' 
+  loadingText: {
+    fontSize: 25,
+    marginTop: 10,
+    color: 'black',
+    fontWeight: '900'
   },
 });

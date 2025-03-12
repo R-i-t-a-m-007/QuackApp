@@ -20,40 +20,29 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function WorkerList() {
+export default function WorkerRequests() {
   const router = useRouter();
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   const [workerToDelete, setWorkerToDelete] = useState(null);
   const [selectedWorker, setSelectedWorker] = useState(null);
-  const [workerName, setWorkerName] = useState('');
-  const [workerEmail, setWorkerEmail] = useState('');
-  const [workerPhone, setWorkerPhone] = useState('');
-  const [workerRole, setWorkerRole] = useState('');
-  const [workerDepartment, setWorkerDepartment] = useState('');
-  const [workerAddress, setWorkerAddress] = useState('');
-  const [workerJoiningDate, setWorkerJoiningDate] = useState('');
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const slideAnim = useState(new Animated.Value(300))[0]; // Start off-screen
   const [userDetails, setUserDetails] = useState(null); // State to hold user details
   const [error, setError] = useState(null); // State to hold error messages
 
-  // Sliding modal state
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const slideAnim = useState(new Animated.Value(300))[0]; // Start off-screen
-
-  // Fetch approved workers from the backend
+  // Fetch pending workers from the backend
   const fetchWorkers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/approved', {
+      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/pending', {
         method: 'GET',
         credentials: 'include',
       });
       const data = await response.json();
+      
       if (response.ok) {
         setWorkers(data);
       } else {
@@ -96,42 +85,19 @@ export default function WorkerList() {
     }, [])
   );
 
-  const updateWorker = async () => {
+  const approveWorker = async (workerId) => {
     try {
-      const updatedWorker = {
-        name: workerName,
-        email: workerEmail,
-        phone: workerPhone,
-        role: workerRole,
-        department: workerDepartment,
-        address: workerAddress,
-        joiningDate: workerJoiningDate,
-      };
-
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/${selectedWorker._id}`, {
+      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/approve/${workerId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedWorker),
+        credentials: 'include',
       });
 
       if (response.ok) {
-        setWorkers((prevWorkers) =>
-          prevWorkers.map((worker) =>
-            worker._id === selectedWorker._id ? { ...worker, ...updatedWorker } : worker
-          )
-        );
-        setSuccessMessage("Worker updated successfully!");
-        setShowSuccessModal(true);
-        setTimeout(() => {
-          setShowSuccessModal(false);
-          closeEditModal();
-          closeModal();
-        }, 2000);
+        setWorkers((prevWorkers) => prevWorkers.filter((worker) => worker._id !== workerId));
+        Alert.alert('Success', 'Worker approved successfully.');
       } else {
         const data = await response.json();
-        console.error('Error updating worker:', data.message);
+        console.error('Error approving worker:', data.message);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -140,17 +106,13 @@ export default function WorkerList() {
 
   const deleteWorker = async (workerId) => {
     try {
-      const response = await fetch(` https://quackapp-backend.onrender.com/api/workers/${workerId}`, {
+      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/${workerId}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         setWorkers((prevWorkers) => prevWorkers.filter((worker) => worker._id !== workerId));
-        setSuccessMessage("Worker deleted successfully!");
-        setShowSuccessModal(true);
-        closeEditModal();
-        closeModal();
-        setTimeout(() => setShowSuccessModal(false), 2000);
+        Alert.alert('Success', 'Worker request declined successfully.');
       } else {
         const data = await response.json();
         console.error('Error deleting worker:', data.message);
@@ -162,13 +124,6 @@ export default function WorkerList() {
 
   const openModal = (worker) => {
     setSelectedWorker(worker);
-    setWorkerName(worker.name);
-    setWorkerEmail(worker.email);
-    setWorkerPhone(worker.phone);
-    setWorkerRole(worker.role);
-    setWorkerDepartment(worker.department);
-    setWorkerAddress(worker.address);
-    setWorkerJoiningDate(worker.joiningDate);
     setIsModalVisible(true);
     Animated.timing(slideAnim, {
       toValue: 0, // Slide to the top
@@ -183,14 +138,6 @@ export default function WorkerList() {
       duration: 300,
       useNativeDriver: true,
     }).start(() => setIsModalVisible(false));
-  };
-
-  const openEditModal = () => {
-    setIsEditModalVisible(true);
-  };
-
-  const closeEditModal = () => {
-    setIsEditModalVisible(false);
   };
 
   const filteredWorkers = workers.filter((worker) => 
@@ -226,7 +173,7 @@ export default function WorkerList() {
             <TouchableOpacity onPress={handleBackPress}>
               <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
-            <Text style={styles.navTitle}>Worker List</Text>
+            <Text style={styles.navTitle}>Worker Requests</Text>
             <Ionicons name="notifications" size={24} color="white" />
           </LinearGradient>
 
@@ -253,7 +200,7 @@ export default function WorkerList() {
             >
               {filteredWorkers.length === 0 ? (
                 <View style={styles.centeredView}>
-                  <Text style={styles.centeredText}>No workers available.</Text>
+                  <Text style={styles.centeredText}>No worker requests available.</Text>
                 </View>
               ) : (
                 <View style={styles.cardSection}>
@@ -278,6 +225,24 @@ export default function WorkerList() {
                               {worker.role}, {worker.department}
                             </Text>
                           </View>
+                        </View>
+
+                        <View style={styles.buttonContainer}>
+                          <TouchableOpacity
+                            style={styles.acceptButton}
+                            onPress={() => approveWorker(worker._id)}
+                          >
+                            <Text style={styles.buttonText}>Accept</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.declineButton}
+                            onPress={() => {
+                              setWorkerToDelete(worker._id);
+                              setShowConfirmModal(true);
+                            }}
+                          >
+                            <Text style={styles.buttonText}>Decline</Text>
+                          </TouchableOpacity>
                         </View>
                       </View>
                     </TouchableOpacity>
@@ -325,8 +290,8 @@ export default function WorkerList() {
                     <Text style={styles.modalText}>{selectedWorker.address}</Text>
                   </View>
                   <View style={styles.detailsRow}>
-                    <Text style={styles.modalText}><Text style={styles.boldText}>Employee Code:</Text></Text>
-                    <Text style={styles.modalText}>{selectedWorker.comp_code}</Text>
+                    <Text style={styles.modalText}><Text style={styles.boldText}>User  Code:</Text></Text>
+                    <Text style={styles.modalText}>{selectedWorker.userCode}</Text>
                   </View>
                   <View style={styles.detailsRow}>
                     <Text style={styles.modalText}><Text style={styles.boldText}>Department:</Text></Text>
@@ -337,107 +302,9 @@ export default function WorkerList() {
                     <Text style={styles.modalText}>{selectedWorker.role}</Text>
                   </View>
                 </View>
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity onPress={openEditModal} style={styles.editButton}>
-                    <Text style={styles.buttonText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => {
-                    setWorkerToDelete(selectedWorker._id);
-                    setShowConfirmModal(true);
-                  }} style={styles.deleteButton}>
-                    <Text style={styles.buttonText}>Delete</Text>
-                  </TouchableOpacity>
-                </View>
+                
               </View>
             </Animated.View>
-          )}
-
-          {isEditModalVisible && (
-            <Modal
-              transparent={true}
-              animationType="slide"
-              visible={isEditModalVisible}
-              onRequestClose={closeEditModal}
-            >
-              <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Edit Worker</Text>
-                  <View style={styles.editFields}>
-                    <View style={styles.editRow}>
-                      <Text style={styles.editLabel}>Name:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={workerName}
-                        onChangeText={setWorkerName}
-                      />
-                    </View>
-                    <View style={styles.editRow}>
-                      <Text style={styles.editLabel}>Email:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={workerEmail}
-                        onChangeText={setWorkerEmail}
-                      />
-                    </View>
-                    <View style={styles.editRow}>
-                      <Text style={styles.editLabel}>Phone:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={workerPhone}
-                        onChangeText={setWorkerPhone}
-                      />
-                    </View>
-                    <View style={styles.editRow}>
-                      <Text style={styles.editLabel}>Role:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={workerRole}
-                        onChangeText={setWorkerRole}
-                      />
-                    </View>
-                    <View style={styles.editRow}>
-                      <Text style={styles.editLabel}>Department:</Text>
-                      <Text
-                        style={styles.input}
-                        value={workerDepartment}
-                        onChangeText={setWorkerDepartment}
-                      />
-                    </View>
-                    <View style={styles.editRow}>
-                      <Text style={styles.editLabel}>Address:</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={workerAddress}
-                        onChangeText={setWorkerAddress}
-                      />
-                    </View>
-                  </View>
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity onPress={updateWorker} style={styles.editButton}>
-                      <Text style={styles.buttonText}>Save</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={closeEditModal} style={styles.deleteButton}>
-                      <Text style={styles.buttonText}>Cancel</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
-          )}
-
-          {showSuccessModal && (
-            <Modal
-              transparent={true}
-              animationType="fade"
-              visible={showSuccessModal}
-              onRequestClose={() => setShowSuccessModal(false)}
-            >
-              <View style={styles.successModal}>
-                <View style={styles.successModalContent}>
-                  <Text style={styles.successModalText}>{successMessage}</Text>
-                </View>
-              </View>
-            </Modal>
           )}
 
           {showConfirmModal && (
@@ -589,7 +456,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#f9d34a',
-    borderTopLeftRadius: 20,
+  borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     elevation: 5,
@@ -626,23 +493,23 @@ const styles = StyleSheet.create({
   boldText: {
     fontWeight: 'bold',
   },
-  modalButtons: {
+  buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
+    marginTop: 10,
   },
-  editButton: {
-    backgroundColor: '#f3830a',
+  acceptButton: {
+    backgroundColor: '#f3ae0a', // Green background for accept button
+    borderRadius: 30,
     padding: 10,
-    borderRadius: 25,
     flex: 1,
     marginRight: 5,
     alignItems: 'center',
   },
-  deleteButton: {
-    backgroundColor: '#000',
+  declineButton: {
+    backgroundColor: 'black', // Red background for decline button
+    borderRadius: 30,
     padding: 10,
-    borderRadius: 25,
     flex: 1,
     marginLeft: 5,
     alignItems: 'center',
@@ -650,6 +517,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
+    alignItems: 'center',
   },
   confirmationContent: {
     backgroundColor: 'white',
@@ -711,49 +579,5 @@ const styles = StyleSheet.create({
     color: 'black',
     textAlign: 'center',
     marginTop: 20,
-  },
-  profileImageModal: {
-    width: 60,
-    height: 60,
-    borderRadius: 60,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 0,
-  },
-  input: {
-    height: 40,
-    borderColor: 'black',
-    borderWidth: 1,
-    marginBottom: 10,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    backgroundColor: '#fff',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  editFields: {
-    width: '100%',
-  },
-  editRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  editLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    width: '30%',
-  },
-  modalImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#f0f0f0',
   },
 });

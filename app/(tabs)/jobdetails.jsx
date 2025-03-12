@@ -1,0 +1,391 @@
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
+  ImageBackground,
+  StatusBar,
+  Alert,
+} from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+
+export default function JobDetails() {
+  const router = useRouter();
+  const { jobId } = useLocalSearchParams();
+  const [job, setJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [availableWorkers, setAvailableWorkers] = useState([]);
+  const [showAvailableWorkers, setShowAvailableWorkers] = useState(false);
+  const [requestedWorkers, setRequestedWorkers] = useState(new Set()); // Track requested workers
+  const scrollViewRef = useRef();
+
+  const fetchJobDetails = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`https://quackapp-backend.onrender.com/api/jobs/${jobId}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setJob(data);
+      } else {
+        Alert.alert('Error', 'Failed to load job details.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred while fetching job details.');
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchJobDetails();
+      setAvailableWorkers([]);
+      setShowAvailableWorkers(false);
+      setRequestedWorkers(new Set()); // Reset requested workers on focus
+    }, [fetchJobDetails])
+  );
+
+  const handleSearchWorkers = async () => {
+    if (!job) return;
+
+    setSearchLoading(true);
+    setShowAvailableWorkers(false);
+    try {
+      const jobDate = new Date(job.date);
+      const response = await fetch(
+        `https://quackapp-backend.onrender.com/api/workers/shift-date?date=${jobDate.toISOString().split('T')[0]}&shift=${job.shift}`,
+        { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableWorkers(data);
+        setShowAvailableWorkers(true);
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.message || 'No workers found for this shift and date.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch workers.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleRequestWorker = async (workerId) => {
+    if (requestedWorkers.has(workerId)) {
+      Alert.alert('Info', 'You have already requested this worker.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/invite/${workerId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ jobId }),
+      });
+
+      if (response.ok) {
+        setRequestedWorkers((prev) => new Set(prev).add(workerId)); // Add workerId to requested workers
+        Alert.alert('Success', 'Worker invited successfully!');
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.message || 'Failed to invite worker.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'An error occurred while inviting the worker.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="black" />
+        <Text style={styles.loadingText}>Loading job details...</Text>
+      </View>
+    );
+  }
+
+  if (!job) {
+    return (
+      <View style={styles.centeredView}>
+        <Text style={styles.centeredText}>Job not found.</Text>
+        <TouchableOpacity onPress={() => router.push('/joblist')} style ={styles.backButton}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <StatusBar barStyle="light-content" />
+      <SafeAreaView style={styles.safeArea}>
+        <ImageBackground
+          source={require('@/assets/images/main-bg.jpg')}
+          style={styles.container}
+          resizeMode="cover"
+        >
+          <LinearGradient colors={['#f3ae0a', '#f3830a']} style={styles.navbar}>
+            <TouchableOpacity onPress={() => router.push('/joblist')}>
+              <Ionicons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.navTitle}>Job Details</Text>
+            <Ionicons name="notifications" size={24} color="white" />
+          </LinearGradient>
+          <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollView}>
+            <View style={styles.jobDetailsContainer}>
+              <Text style={styles.jobTitle}>{job.title}</Text>
+              <View style={styles.jobInfoContainer}>
+                <View style={styles.jobInfoRow}>
+                  <View style={styles.iconContainer}>
+                    <Ionicons name="calendar" size={35} color="#f3ae0a" />
+                    <Text style={styles.jobInfoText}>{new Date(job.date).toLocaleDateString()}</Text>
+                  </View>
+                  <View style={styles.iconContainer}>
+                    <Ionicons name="location" size={35} color="#f3ae0a" />
+                    <Text style={styles.jobInfoText}>{job.location}</Text>
+                  </View>
+                  <View style={styles.iconContainer}>
+                    <Ionicons name="time" size={35} color="#f3ae0a" />
+                    <Text style={styles.jobInfoText}>{job.shift}</Text>
+                  </View>
+                </View>
+              </View>
+              <Text style={styles.workersRequired}>Workers Required: {job.workersRequired}</Text>
+              <Text style={styles.userCode}>User  Code: <Text style={styles.boldText}>{job.userCode}</Text></Text>
+              <Text style={styles.jobDescription}>Description: <Text style={styles.boldText}>{job.description}</Text></Text>
+              <TouchableOpacity onPress={handleSearchWorkers} style={styles.searchButton}>
+                <Text style={styles.searchButtonText}>Find Available Workers</Text>
+              </TouchableOpacity>
+              {searchLoading && <ActivityIndicator size="small" color="#f3ae0a" />}
+              {showAvailableWorkers && (
+                <View style={styles.workersList}>
+                  <Text style={styles.workersListTitle}>Available Workers:</Text>
+                  {availableWorkers.length === 0 ? (
+                    <Text style={styles.noWorkersText}>No workers available for this date and shift.</Text>
+                  ) : (
+                    availableWorkers.map(worker => (
+                      <View key={worker._id} style={styles.workerCard}>
+                        <Ionicons name="person-circle" size={30} color="#f3ae0a" />
+                        <Text style={styles.workerName}>{worker.name}</Text>
+                        <TouchableOpacity 
+                          onPress={() => handleRequestWorker(worker._id)} 
+                          style={requestedWorkers.has(worker._id) || worker.invitedJobs.includes(jobId) ? styles.requestedButton : styles.requestButton}
+                          disabled={requestedWorkers.has(worker._id) || worker.invitedJobs.includes(jobId)} // Disable button if already requested
+                        >
+                          <Text style={styles.requestButtonText}>
+                            {requestedWorkers.has(worker._id) || worker.invitedJobs.includes(jobId) ? 'Requested' : 'Request'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))
+                  )}
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </ImageBackground>
+      </SafeAreaView>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3ae0a',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 20,
+    color: 'black',
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3ae0a',
+  },
+  centeredText: {
+    fontSize: 18,
+    marginBottom: 20,
+    color: 'white',
+  },
+  backButton: {
+    padding: 10,
+    backgroundColor: '#f3830a',
+    borderRadius: 5,
+  },
+  backButtonText: {
+    color: 'white',
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f3ae0a',
+  },
+  container: {
+    flex: 1,
+  },
+  navbar : {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 20,
+  },
+  navTitle: {
+    fontSize: 20,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  scrollView: {
+    padding: 20,
+  },
+  jobDetailsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  jobTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 25,
+  },
+  jobInfoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  jobInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginBottom: 10,
+  },
+  iconContainer: {
+    alignItems: 'center',
+  },
+  jobInfoText: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 5,
+    fontWeight: 'bold'
+  },
+  workersRequired: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  userCode: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 5,
+    fontWeight: 'bold',
+  },
+  jobDescription: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 20,
+    fontWeight: 'bold',
+  },
+  boldText: {
+    fontWeight: 'bold',
+  },
+  searchButton: {
+    padding: 15,
+    backgroundColor: '#f3ae0a',
+    borderRadius: 25,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  searchButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  workersList: {
+    marginTop: 20,
+  },
+  workersListTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  noWorkersText: {
+    fontSize: 16,
+    color: '#555',
+    marginTop: 10,
+  },
+  workerCard: {
+    fontSize: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 5,
+    marginVertical: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+  },
+  workerName: {
+    marginLeft: 10,
+    fontSize: 16,
+    color: '#333',
+    fontSize: 20,
+  },
+  requestButton: {
+    marginLeft: 'auto',
+    padding: 10,
+    backgroundColor: '#f3ae0a',
+    borderRadius: 5,
+  },
+  requestedButton: {
+    marginLeft: 'auto',
+    padding: 10,
+    backgroundColor: '#ccc', // Grey color for disabled state
+    borderRadius: 5,
+  },
+  requestButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+});

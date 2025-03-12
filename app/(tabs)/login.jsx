@@ -1,9 +1,23 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ImageBackground, Alert, Modal, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ImageBackground,
+  Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Dimensions,
+  ScrollView,
+  StatusBar,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { height, width } = Dimensions.get('window');
 
@@ -11,28 +25,72 @@ export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState(null); // For user type selection
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state
 
   const handleLogin = async () => {
-    if (!userType) {
-      Alert.alert('Error', 'Please select a user type.');
-      return;
-    }
+    setLoading(true); // Start loading
 
     try {
-      const response = await fetch('http://192.168.1.5:5000/api/auth/login', {
+      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, userType }),
+        body: JSON.stringify({ username, password }), // Only username and password
       });
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert('Login Successful', `Welcome back, ${username}!`);
-        router.push('/packagescreen');
+        // Check the user's package after successful login
+        const userResponse = await fetch('https://quackapp-backend.onrender.com/api/auth/me', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (userResponse.ok) {
+          const userData = await userResponse.json();          
+          const userPackage = userData.user.package; // Assuming the package is in the user object
+
+          // Redirect based on the package
+          if (userPackage === 'Pro') {
+            router.push('/prouserdash'); // Redirect to Individual Dashboard
+          } else if (userPackage === 'Basic') {
+            router.push('/basicuserdash'); // Redirect to Company Dashboard
+          } else {
+            Alert.alert('Error', 'User  package is not defined.');
+          }
+        } else {
+          Alert.alert('Error', 'Failed to fetch user data.');
+        }
       } else {
         setShowErrorModal(true);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong. Please try again later.');
+    } finally {
+      setLoading(false); // Stop loading
+    }
+  };
+
+  
+  const handleResetPassword = async () => {
+    try {
+      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, newPassword }),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Your password has been reset successfully. Please Login Again.');
+        setShowOtpModal(false);
+        setNewPassword(''); // Clear the new password input
+      } else {
+        Alert.alert('Error', 'Failed to reset password. Please check your OTP.');
       }
     } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again later.');
@@ -40,143 +98,123 @@ export default function Login() {
   };
 
   return (
-    <ImageBackground
-      source={require('@/assets/images/main-bg.jpg')}
-      style={styles.container}
-      resizeMode="cover"
-    >
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-      >
-        <View style={styles.content}>
-          <Image
-            source={require('@/assets/images/logo-with-glow-new.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.loginText}>LOGIN</Text>
-          <View style={styles.underline} />
-
-          {/* User Type Selection */}
-          <View style={styles.cardContainer}>
-            <TouchableOpacity
-              style={[
-                styles.cardWrapper,
-                userType === 'company' ? styles.cardSelected : null,
-              ]}
-              onPress={() => setUserType('company')}
-            >
-              <LinearGradient 
-                colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
-                style={styles.card}
-              >
-                <Image 
-                  source={require('@/assets/images/company-icon.png')} 
-                  style={styles.cardImage} 
+    <>
+      <StatusBar barStyle ="light-content" />
+      <SafeAreaView style={styles.safeArea}>
+        <ImageBackground
+          source={require('@/assets/images/main-bg.jpg')}
+          style={styles.container}
+          resizeMode="cover"
+        >
+          <KeyboardAvoidingView
+            style={styles.keyboardContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+              <View style={styles.content}>
+                <Image
+                  source={require('@/assets/images/logo-with-glow-new.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
                 />
-                <Text style={styles.cardText}>AS A COMPANY</Text>
-              </LinearGradient>            
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.cardWrapper,
-                userType === 'individual' ? styles.cardSelected : null,
-              ]}
-              onPress={() => setUserType('individual')}
-            >
-                <LinearGradient 
-                colors={['#f3ae0a', '#f3ae0a', '#f3830a']} 
-                style={styles.card}
-              >
-                <Image 
-                  source={require('@/assets/images/individual-icon.png')} 
-                  style={styles.cardImage} 
-                />
-                <Text style={styles.cardText}>AS AN INDIVIDUAL</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+                <Text style={styles.loginText}>LOGIN</Text>
+                <View style={styles.underline} />
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="person" size={20} color="white" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Username"
-              placeholderTextColor="white"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-            />
-          </View>
+                <View style={styles.inputContainer}>
+                  <Ionicons name="person" size={20} color="white" style={styles.icon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Username"
+                    placeholderTextColor="white"
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="none"
+                  />
+                </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed" size={20} color="white" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="white"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              autoCapitalize="none"
-            />
-          </View>
+                <View style={styles.inputContainer}>
+                  <Ionicons name="lock-closed" size={20} color="white" style={styles.icon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    placeholderTextColor="white"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                    autoCapitalize="none"
+                  />
+                </View>
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Login</Text>
-          </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+                  <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
+                </TouchableOpacity>
 
-          <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/register')}>
-              <Text style={styles.signUpLink}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
+                <View style={styles.signUpContainer}>
+                  <Text style={styles.signUpText}>Don't have an account? </Text>
+                  <TouchableOpacity onPress={() => router.push('/register')}>
+                    <Text style={styles.signUpLink}>Sign Up</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/forgotpassword')}>
+                  <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
+                </TouchableOpacity>
 
-      {/* Modal for Login Failure */}
-      <Modal
-        transparent={true}
-        visible={showErrorModal}
-        animationType="fade"
-        onRequestClose={() => setShowErrorModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>Invalid Username or Password</Text>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => setShowErrorModal(false)}
-            >
-              <Text style={styles.modalButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </ImageBackground>
+                <View style={styles.companyLoginContainer}>
+                  <TouchableOpacity onPress={() => router.push('/companylogin')}>
+                    <Text style={styles.companyLoginText}>Login as a Company</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.companyLoginContainer}>
+                  <TouchableOpacity onPress={() => router.push('/workerlogin')}>
+                    <Text style={styles.companyLoginText}>Login as a Worker</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+
+          <Modal
+            transparent={true}
+            visible={showErrorModal}
+            animationType="fade"
+            onRequestClose={() => setShowErrorModal(false)}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalText}>Invalid Username or Password</Text>
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={() => setShowErrorModal(false)}
+                >
+                  <Text style={styles.modalButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        </ImageBackground>
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f3ae0a',
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal:20,
     width: width,
     height: height,
   },
   keyboardContainer: {
     flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     width: '90%',
-    maxWidth: 400,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 20,
@@ -201,48 +239,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignSelf: 'center',
   },
-  cardContainer: {
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    gap: 20, 
-    width: '90%', 
-    marginBottom: 20,
-  },
-  cardWrapper: { 
-    flex: 1, 
-    margin: 5,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10, 
-  },
-  card: {
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    width: '100%', 
-    height: 140,
-
-    borderRadius: 10, 
-    elevation: 10, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 0 }, 
-    shadowOpacity: 0.3, 
-    shadowRadius: 5 
-  },
-  cardSelected: {
-    borderWidth: 2, 
-    borderColor: 'white',
-    borderRadius: 10 
-  },
-  cardImage: { 
-    width: 100, 
-    height: 100, 
-    marginBottom: 10 
-  },
-  cardText: {
-    fontSize: 12, 
-    color: 'black', 
-    fontWeight: 'bold' 
-  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -250,7 +246,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 15,
     marginVertical: 5,
-    width: '100%',
+    width: '100%', // Ensure full width
     height: 50,
   },
   icon: {
@@ -265,10 +261,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
     borderRadius: 25,
     paddingVertical: 15,
-    paddingHorizontal: 40,
     alignItems: 'center',
     marginTop: 20,
-    width: '100%',
+    width: '100%', // Ensure full width
   },
   buttonText: {
     color: '#fff',
@@ -284,6 +279,8 @@ const styles = StyleSheet.create({
   signUpText: {
     color: '#000',
     textAlign: 'center',
+    fontSize: 15,
+    fontWeight: 'normal',
   },
   signUpLink: {
     color: '#000',
@@ -304,7 +301,7 @@ const styles = StyleSheet.create({
     width: '80%',
     maxWidth: 400,
   },
-  modalText: { 
+  modalText: {
     fontSize: 18, 
     fontWeight: 'bold', 
     color: '#FF0000',
@@ -324,5 +321,85 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontWeight: 'bold' 
   },
+  scrollContent: {
+    flexGrow: 1, 
+    justifyContent: 'center', 
+    paddingTop: 40, 
+    paddingBottom: 40, 
+    alignItems: 'center' 
+  },
+  forgotPasswordLink: {
+    color: '#fff',
+    textDecorationLine: 'underline',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  forgotPasswordModalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  forgotPasswordModalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    width: '80%',
+    maxWidth: 400,
+  },
+  forgotPasswordModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  forgotPasswordModalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  forgotPasswordModalInput: {
+    width: '100%',
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  forgotPasswordModalButton: {
+    backgroundColor: '#f3ae0a',
+    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  forgotPasswordModalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  forgotPasswordCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  loadingText: {
+    color: 'white',
+    marginLeft: 10,
+  },
+  companyLoginContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  companyLoginText: {
+    color: 'black', // Link color
+    fontSize: 16,
+    textDecorationLine: 'underline',
+    fontWeight:'600'
+  },
 });
-

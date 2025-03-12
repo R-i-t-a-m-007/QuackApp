@@ -11,11 +11,13 @@ import {
   ScrollView,
   Platform,
   Modal,
+  ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const AddWorker = () => {
   const router = useRouter();
@@ -27,12 +29,16 @@ const AddWorker = () => {
     department: '',
     address: '',
     joiningDate: new Date(),
+    password: '',
   });
 
   const [errors, setErrors] = useState({});
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [loading, setLoading] = useState(false); // Loading state for adding company
+
+  
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
@@ -48,6 +54,11 @@ const AddWorker = () => {
     if (!formData.role) newErrors.role = 'Role is required';
     if (!formData.department) newErrors.department = 'Department is required';
     if (!formData.address) newErrors.address = 'Address is required';
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -56,8 +67,10 @@ const AddWorker = () => {
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
+    setLoading(true);
+
     try {
-      const response = await fetch('http://192.168.1.5:5000/api/workers/add', {
+      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -68,7 +81,7 @@ const AddWorker = () => {
         setModalMessage('Worker added successfully!');
         setModalVisible(true);
         setTimeout(() => {
-          router.push('/agencydash');
+          router.push('/companydash');
         }, 2000); // Redirect after 2 seconds
       } else {
         setModalMessage(data.message || 'Failed to add worker.');
@@ -79,11 +92,15 @@ const AddWorker = () => {
       setModalMessage('An unexpected error occurred. Please try again.');
       setModalVisible(true);
     }
+    finally {
+      setLoading(false); // Stop loading
+    }
   };
 
   return (
     <>
       <StatusBar barStyle="light-content" />
+      <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -94,7 +111,7 @@ const AddWorker = () => {
           resizeMode="cover"
         >
           <LinearGradient colors={['#f3ae0a', '#f3ae0a', '#f3830a']} style={styles.navbar}>
-            <TouchableOpacity onPress={() => router.push('/individualdash')}>
+            <TouchableOpacity onPress={() => router.push('/companydash')}>
               <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
             <Text style={styles.navTitle}>Add Worker</Text>
@@ -130,6 +147,20 @@ const AddWorker = () => {
                 {errors[field.name] && <Text style={styles.errorText}>{errors[field.name]}</Text>}
               </View>
             ))}
+            <View style={styles.inputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    errors.password && styles.inputError,
+                  ]}
+                  placeholder="Password"
+                  placeholderTextColor="white"
+                  secureTextEntry
+                  value={formData.password}
+                  onChangeText={(value) => handleInputChange('password', value)}
+                />
+                {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+              </View>
 
             {/* Date Picker */}
             <TouchableOpacity
@@ -156,6 +187,12 @@ const AddWorker = () => {
               <Text style={styles.submitButtonText}>Add Worker</Text>
             </TouchableOpacity>
           </ScrollView>
+          {loading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="white" />
+                  <Text style={styles.loadingText}>Adding Worker...</Text>
+                </View>
+              )}
 
           <Modal
             transparent
@@ -173,13 +210,19 @@ const AddWorker = () => {
           </Modal>
         </ImageBackground>
       </KeyboardAvoidingView>
+      </SafeAreaView>
     </>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f3ae0a',
+  },
   container: {
     flex: 1,
+    paddingTop: 0, 
   },
   navbar: {
     flexDirection: 'row',
@@ -187,7 +230,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     padding: 20,
-    paddingTop: 50,
+    paddingTop: 10,
   },
   navTitle: {
     fontSize: 20,
@@ -278,6 +321,21 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    position: 'absolute', // Use absolute positioning
+    top: '50%', // Center vertically
+    left: '35%', // Center horizontally
+    transform: [{ translateX: -50 }, { translateY: -50 }], // Adjust for the width and height of the container
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 25,
+    color: 'white',
+    fontWeight:'bold',
   },
 });
 

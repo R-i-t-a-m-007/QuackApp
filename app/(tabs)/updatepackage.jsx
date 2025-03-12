@@ -6,18 +6,18 @@ import {
   StyleSheet,
   FlatList,
   ImageBackground,
-  Image,
-  ScrollView,
   Alert,
   Modal,
   StatusBar,
+  ScrollView,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useStripe } from '@stripe/stripe-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const PackageScreen = () => {
+const UpdatePackageScreen = () => {
   const router = useRouter();
   const scrollViewRef = useRef();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -33,6 +33,7 @@ const PackageScreen = () => {
       title: 'Basic Version',
       price: 14.95,
       features: ['One Company', 'One Login', 'One Department', 'One Set of Workers'],
+      disabled: true, // Disable the Basic package
     },
     {
       id: 2,
@@ -47,9 +48,10 @@ const PackageScreen = () => {
   }, []);
 
   const handleSelectPackage = (pkgId) => {
-    setSelectedPackage(pkgId);
+    if (!packages.find(pkg => pkg.id === pkgId).disabled) {
+      setSelectedPackage(pkgId);
+    }
   };
-  
 
   const initializePaymentSheet = async (priceId) => {
     setLoading(true);
@@ -94,34 +96,29 @@ const PackageScreen = () => {
       setIsSuccess(false);
       setModalVisible(true); // Show failure modal immediately
     } else {
-      setModalMessage('Payment successful! Thank you for your purchase.');
+      setModalMessage('Payment successful! You are now a Pro User.');
       setIsSuccess(true);
       await storeSelectedPackage(); // Call the function to store the selected package
     }
   };
 
   const storeSelectedPackage = async () => {
-    const packageName = selectedPackage === 1 ? 'Basic' : 'Pro'; // Determine package name
+    const packageName = 'Pro'; // Only allow Pro package
 
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/store-package', {
+      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/updatepackage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ packageName }),
+        body: JSON.stringify({ newPackage: packageName }),
       });
 
       if (response.ok) {
         // Show success modal after storing the package
         setModalVisible(true);
-        // Redirect based on the package selected
-        if (packageName === 'Basic') {
-          router.push('/basicuserdash'); // Redirect to Company Dashboard
-        } else {
-          router.push('/prouserdash'); // Redirect to Individual Dashboard
-        }
+        router.push('/prouserdash'); // Redirect to Pro User Dashboard
       } else {
         Alert.alert('Error', 'Failed to store selected package. Please try again.');
       }
@@ -134,13 +131,12 @@ const PackageScreen = () => {
   const handleNext = async () => {
     if (!selectedPackage) {
       Alert.alert('No Package Selected', 'Please select a package before proceeding.');
-      return;
+ return;
     }
 
-    const priceId =
-      selectedPackage === 1
-        ? 'price_1QU1Mq02CrK5yqCqx9csNo64'
-        : 'price_1QU1Nt02CrK5yqCqi9yehdop';
+    const priceId = selectedPackage === 1
+      ? 'price_1QU1Mq02CrK5yqCqx9csNo64'
+      : 'price_1QU1Nt02CrK5yqCqi9yehdop';
 
     initializePaymentSheet(priceId);
   };
@@ -157,7 +153,7 @@ const PackageScreen = () => {
           <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollViewContainer}>
             <View style={styles.headerContainer}>
               <Image source={require('@/assets/images/logonew.png')} style={styles.logo} resizeMode="contain" />
-              <Text style={styles.heading}>Packages</Text>
+              <Text style={styles.heading}>Upgrade Package</Text>
               <View style={styles.underline} />
             </View>
 
@@ -167,7 +163,11 @@ const PackageScreen = () => {
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               renderItem={({ item }) => (
-                <View style={[styles.card, selectedPackage === item.id && styles.selectedCard]}>
+                <View style={[
+                  styles.card, 
+                  selectedPackage === item.id && styles.selectedCard, 
+                  item.disabled && styles.disabledCard // Apply disabled style
+                ]}>
                   <View style={styles.cardHeader}>
                     <Text style={styles.cardTitle}>{item.title}</Text>
                     <Text style={styles.cardPrice}>€{item.price.toFixed(2)}/month</Text>
@@ -182,6 +182,7 @@ const PackageScreen = () => {
                     <TouchableOpacity
                       style={[styles.selectButton, selectedPackage === item.id && styles.selectedButton]}
                       onPress={() => handleSelectPackage(item.id)}
+                      disabled={item.disabled} // Disable the button if the package is disabled
                     >
                       <Text style={styles.buttonText}>Select Package</Text>
                     </TouchableOpacity>
@@ -198,17 +199,22 @@ const PackageScreen = () => {
               disabled={loading}
             >
               <Text style={styles.registerButtonText}>
-                {loading ? 'Processing...' : 'Next'}
+                {loading ? 'Processing...' : 'Upgrade Package'}
               </Text>
             </TouchableOpacity>
           </ScrollView>
 
-          {/* Modal for Payment Result */}
+          {/* Modal for Upgrade Result */}
           <Modal
             animationType="fade"
             transparent={true}
             visible={modalVisible}
-            onRequestClose={() => setModalVisible(false)}
+            onRequestClose={() => {
+              setModalVisible(false);
+              if (isSuccess) {
+                router.push('/prouserdash'); // Redirect to Pro User Dashboard on success
+              }
+            }}
           >
             <View style={styles.modalContainer}>
               <View style={[styles.modalContent, isSuccess ? styles.successModal : styles.failureModal]}>
@@ -223,7 +229,7 @@ const PackageScreen = () => {
                   onPress={() => {
                     setModalVisible(false);
                     if (isSuccess) {
-                      // Redirect handled in storeSelectedPackage
+                      router.push('/prouserdash'); // Redirect handled in modal close
                     }
                   }}
                 >
@@ -238,7 +244,7 @@ const PackageScreen = () => {
   );
 };
 
-export default PackageScreen;
+export default UpdatePackageScreen;
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -249,27 +255,27 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 40, 
+    paddingTop: 40,
     backgroundColor: '#f0f0f0'
   },
   scrollViewContainer: {
     flexGrow: 1,
     alignItems: 'center',
-    paddingVertical: 10, 
+    paddingVertical: 10,
   },
   headerContainer: {
     alignItems: 'center',
     marginBottom: 10
   },
   logo: {
-    width: 100,
+    width:  100,
     height: 100,
-    marginBottom: 5, 
+    marginBottom: 5,
   },
   heading: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color : '#fff',
   },
   underline: {
     width: 60,
@@ -279,7 +285,7 @@ const styles = StyleSheet.create({
   },
   carouselContainer: {
     alignItems: 'center',
-    paddingVertical: 0, 
+    paddingVertical: 0,
   },
   card: {
     backgroundColor: 'white',
@@ -292,13 +298,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
-    borderWidth: 0, 
-    borderColor: 'white' 
+    borderWidth: 0,
+    borderColor: 'white'
   },
   selectedCard: {
-    borderWidth: 2, 
+    borderWidth: 2,
     borderColor: 'white',
     borderRadius: 10,
+  },
+  disabledCard: {
+    backgroundColor: '#d3d3d3', // Light gray to indicate disabled state
   },
   cardHeader: {
     backgroundColor: '#d94e04',
@@ -343,7 +352,7 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   selectedButton: {
-    backgroundColor: 'gray', 
+    backgroundColor: 'gray',
   },
   buttonText: {
     color: 'white',

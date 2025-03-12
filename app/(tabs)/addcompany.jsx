@@ -11,11 +11,13 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Country, City } from 'country-state-city';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AddCompany() {
   const router = useRouter();
@@ -24,9 +26,10 @@ export default function AddCompany() {
     email: '',
     phone: '',
     address: '',
+    postcode: '',
+    password: '',
     country: '',
     city: '',
-    postcode: '',
   });
   const [errors, setErrors] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
@@ -38,6 +41,8 @@ export default function AddCompany() {
   const [countries, setCountries] = useState([]);
   const [cities, setCities] = useState([]);
   const [selectedCountryCode, setSelectedCountryCode] = useState('');
+  const [isSuccess, setIsSuccess] = useState(true); // Tracks success or error modal
+  const [loading, setLoading] = useState(false); // Loading state for adding company
 
   useEffect(() => {
     const fetchCountries = async () => {
@@ -76,6 +81,10 @@ export default function AddCompany() {
       newErrors.phone = 'Phone number must contain only numbers';
     }
 
+    if (formData.password && formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
     setErrors(newErrors);
 
     return Object.keys(newErrors).length === 0;
@@ -84,8 +93,10 @@ export default function AddCompany() {
   const handleConfirm = async () => {
     if (!validateForm()) return;
 
+    setLoading(true);
+
     try {
-      const response = await fetch('http://192.168.1.5:5000/api/companies/add', {
+      const response = await fetch('https://quackapp-backend.onrender.com/api/companies/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -94,32 +105,39 @@ export default function AddCompany() {
       const data = await response.json();
 
       if (response.ok) {
+        setIsSuccess(true);
         setModalMessage(data.message);
         setFormData({
           name: '',
           email: '',
           phone: '',
           address: '',
+          postcode: '',
+          password: '',
           country: '',
           city: '',
-          postcode: '',
         });
+        router.push("/companylist");
       } else {
+        setIsSuccess(false); // Error case
         setModalMessage(data.message || 'Failed to add company');
       }
 
       setModalVisible(true);
     } catch (error) {
       console.error(error);
-      setModalMessage('Server error. Please try again later.');
+      setIsSuccess(false); // Error case
+      setModalMessage('Something went wrong. Please try again later.');
       setModalVisible(true);
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
   const handleCountrySelect = (country) => {
     setFormData({ ...formData, country: country.name, city: '' });
     setSelectedCountryCode(country.code); // Store the selected country code
- const cities = City.getCitiesOfCountry(country.code);
+    const cities = City.getCitiesOfCountry(country.code);
     setCities(cities.map((city) => city.name));
     setCityDropdownVisible(false);
     setCountryDropdownVisible(false);
@@ -141,176 +159,215 @@ export default function AddCompany() {
   return (
     <>
       <StatusBar barStyle="light-content" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <ImageBackground
-          source={require('@/assets/images/main-bg.jpg')}
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.container}
-          resizeMode="cover"
         >
-          <LinearGradient colors={['#f3ae0a', '#f3ae0a', '#f3830a']} style={styles.navbar}>
-            <TouchableOpacity onPress={() => router.push('/agencydash')}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <Text style={styles.navTitle}>Add Company</Text>
-            <Ionicons name="notifications" size={24} color="white" />
-          </LinearGradient>
-
-          <ScrollView
-            style={styles.formContainer}
-            contentContainerStyle={styles.scrollViewContent}
-            showsVerticalScrollIndicator={false}
+          <ImageBackground
+            source={require('@/assets/images/main-bg.jpg')}
+            style={styles.container}
+            resizeMode="cover"
           >
-            {[
-              { name: 'name', placeholder: 'Name' },
-              { name: 'email', placeholder: 'Email' },
-              { name: 'phone', placeholder: 'Phone Number', keyboardType: 'phone-pad' },
-              { name: 'address', placeholder: 'Address' },
-              {
-                name: 'country',
-                placeholder: 'Select Country',
-                dropdown: true,
-              },
-              {
-                name: 'city',
-                placeholder: 'Select City',
-                dropdown: true,
-              },
-              { name: 'postcode', placeholder: 'Postcode' },
-            ].map((field, index) => (
-              <View key={index} style={styles.inputContainer}>
-                {field.dropdown ? (
-                  <TouchableOpacity
-                    style={[
-                      styles.input,
-                      errors[field.name] && styles.inputError,
-                    ]}
-                    onPress={() => {
-                      if (field.name === 'country') {
-                        setCountryDropdownVisible(true);
-                      } else if (field.name === 'city') {
-                        setCityDropdownVisible(true);
-                      }
-                    }}
-                  >
-                    <Text style={styles.inputText}>
-                      {formData[field.name] || field.placeholder}
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      errors[field.name] && styles.inputError,
-                    ]}
-                    placeholder={field.placeholder}
-                    placeholderTextColor="white"
-                    keyboardType={field.keyboardType || 'default'}
-                    value={formData[field.name]}
-                    onChangeText={(value) => handleInputChange(field.name, value)}
-                  />
-                )}
-                {errors[field.name] && <Text style={styles.errorText}>{errors[field.name]}</Text>}
-              </View>
-            ))}
+            <LinearGradient colors={['#f3ae0a', '#f3ae0a', '#f3830a']} style={styles.navbar}>
+              <TouchableOpacity onPress={() => router.push('/prouserdash')}>
+                <Ionicons name="arrow-back" size={30} color="white" />
+              </TouchableOpacity>
+              <Text style={styles.navTitle}>Add Company</Text>
+              <Ionicons name="notifications" size={24} color="white" />
+            </LinearGradient>
 
-            {countryDropdownVisible && (
-              <Modal
-                transparent
-                visible={countryDropdownVisible}
-                onRequestClose={() => setCountryDropdownVisible(false)}
-              >
-                <View style={styles.modalContainer}>
-                  <View style={styles.modalContent}>
-                    <View style={styles.searchContainer}>
-                      <Ionicons name="search" size={20} color="gray" />
-                      <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search Country..."
-                        value={searchCountryQuery}
-                        onChangeText={setSearchCountryQuery}
-                      />
-                    </View>
-                    <ScrollView>
-                      {filteredCountries.map((item) => (
-                        <TouchableOpacity
-                          key={item.code}
-                          onPress={() => handleCountrySelect(item)}
-                          style={styles.dropdownItem}
-                        >
-                          <Text style={styles.dropdownItemText}>{item.name}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </Modal>
-            )}
-
-            {cityDropdownVisible && (
-              <Modal
-                transparent
-                visible={cityDropdownVisible}
-                onRequestClose={() => setCityDropdownVisible(false)}
-              >
-                <View style={styles.modalContainer}>
-                  <View style={styles.modalContent}>
-                    <View style={styles.searchContainer}>
-                      <Ionicons name="search" size={20} color="gray" />
-                      <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search City..."
-                        value={searchCityQuery}
-                        onChangeText={setSearchCityQuery}
-                      />
-                    </View>
-                    <ScrollView>
-                    {filteredCities.map((city, index) => (
-                      <TouchableOpacity
-                        key={`${city}-${index}`} // Use a combination of city name and index for uniqueness
-                        onPress={() => handleCitySelect(city)}
-                        style={styles.dropdownItem}
-                      >
-                        <Text style={styles.dropdownItemText}>{city}</Text>
-                      </TouchableOpacity>
-                    ))}
-                    </ScrollView>
-                  </View>
-                </View>
-              </Modal>
-            )}
-
-            <TouchableOpacity onPress={handleConfirm} style={styles.confirmButton}>
-              <Text style={styles.confirmButtonText}>Confirm</Text>
-            </TouchableOpacity>
-
-            <Modal
-              transparent
-              visible={modalVisible}
-              onRequestClose={() => setModalVisible(false)}
+            <ScrollView
+              style={styles.formContainer}
+              contentContainerStyle={styles.scrollViewContent}
+              showsVerticalScrollIndicator={false}
             >
-              <View style={styles.successModalContainer}>
-                <View style={styles.successModalContent}>
-                  <Ionicons name="checkmark-circle" size={50} color="#4CAF50" style={styles.successIcon} />
-                  <Text style={styles.successModalText}>{modalMessage}</Text>
-                  <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.successModalButton}>
-                    <Text style={styles.successModalButtonText}>Close</Text>
-                  </TouchableOpacity>
+              {[
+                { name: 'name', placeholder: 'name' },
+                { name: 'email', placeholder: 'Email' },
+                { name: 'password', placeholder: 'Password' },
+                { name: 'phone', placeholder: 'Phone Number', keyboardType: 'phone-pad' },
+                { name: 'address', placeholder: 'Address' },
+                {
+                  name: 'country',
+                  placeholder: 'Select Country',
+                  dropdown: true,
+                },
+                {
+                  name: 'city',
+                  placeholder: 'Select City',
+                  dropdown: true,
+                },
+                { name: 'postcode', placeholder: 'Postcode' },
+              ].map((field, index) => (
+                <View key={index} style={styles.inputContainer}>
+                  {field.dropdown ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.input,
+                        errors[field.name] && styles.inputError,
+                      ]}
+                      onPress={() => {
+                        if (field.name === 'country') {
+                          setCountryDropdownVisible(true);
+                        } else if (field.name === 'city') {
+                          setCityDropdownVisible(true);
+                        }
+                      }}
+                    >
+                      <Text style={styles.inputText}>
+                        {formData[field.name] || field.placeholder}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TextInput
+                      style={[
+                        styles.input,
+                        errors[field.name] && styles.inputError,
+                      ]}
+                      placeholder={field.placeholder}
+                      placeholderTextColor="white"
+                      keyboardType={field.keyboardType || 'default'}
+                      value={formData[field.name]}
+                      onChangeText={(value) => handleInputChange(field.name, value)}
+                      secureTextEntry={field.name === 'password'}
+                    />
+                  )}
+                  {errors[field.name] && <Text style={styles.errorText}>{errors[field.name]}</Text>}
                 </View>
-              </View>
-            </Modal>
-          </ScrollView>
-        </ImageBackground>
-      </KeyboardAvoidingView>
+              ))}
+
+              {countryDropdownVisible && (
+                <Modal
+                  transparent
+                  visible={countryDropdownVisible}
+                  onRequestClose={() => setCountryDropdownVisible(false)}
+                >
+                  <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                      <TouchableOpacity
+                        style={styles.closeIconContainer}
+                        onPress={() => setCountryDropdownVisible(false)}
+                      >
+                        <Ionicons name="close" size={24} color="black" />
+                      </TouchableOpacity>
+                      <View style={styles.searchContainer}>
+                        <Ionicons name="search" size={20} color="gray" />
+                        <TextInput
+                          style={styles.searchInput}
+                          placeholder="Search Country..."
+                          value={searchCountryQuery}
+                          onChangeText={setSearchCountryQuery}
+                        />
+                      </View>
+                      <ScrollView>
+                        {filteredCountries.map((item) => (
+                          <TouchableOpacity
+                            key={item.code}
+                            onPress={() => handleCountrySelect(item)}
+                            style={styles.dropdownItem}
+                          >
+                            <Text style={styles.dropdownItemText}>{item.name}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </View>
+                </Modal>
+              )}
+
+              {cityDropdownVisible && (
+                <Modal
+                  transparent
+                  visible={cityDropdownVisible}
+                  onRequestClose={() => setCityDropdownVisible(false)}
+                >
+                  <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                      <TouchableOpacity
+                        style={styles.closeIconContainer}
+                        onPress={() => setCityDropdownVisible(false)}
+                      >
+                        <Ionicons name="close" size={24} color="black" />
+                      </TouchableOpacity>
+
+                      <View style={styles.searchContainer}>
+                        <Ionicons name="search" size={20} color="gray" />
+                        <TextInput
+                          style={styles.searchInput}
+                          placeholder="Search City..."
+                          value={searchCityQuery}
+                          onChangeText={setSearchCityQuery}
+                        />
+                      </View>
+
+                      <ScrollView>
+                        {filteredCities.map((city, index) => (
+                          <TouchableOpacity
+                            key={`${city}-${index}`}
+                            onPress={() => handleCitySelect(city)}
+                            style={styles.dropdownItem}
+                          >
+                            <Text style={styles.dropdownItemText}>{city}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </View>
+                </Modal>
+              )}
+
+              <TouchableOpacity onPress={handleConfirm} style={ styles.confirmButton}>
+                <Text style={styles.confirmButtonText}>Confirm</Text>
+              </TouchableOpacity>
+
+              {loading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="white" />
+                  <Text style={styles.loadingText}>Adding Company...</Text>
+                </View>
+              )}
+
+              <Modal
+                transparent
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+              >
+                <View style={styles.successModalContainer}>
+                  <View style={styles.successModalContent}>
+                    <Ionicons
+                      name={isSuccess ? 'checkmark-circle' : 'close-circle'}
+                      size={50}
+                      color={isSuccess ? '#4CAF50' : '#FF5252'}
+                      style={styles.successIcon}
+                    />
+                    <Text style={styles.successModalText}>{modalMessage}</Text>
+                    <TouchableOpacity
+                      onPress={() => setModalVisible(false)}
+                      style={styles.successModalButton}
+                    >
+                      <Text style={styles.successModalButtonText}>Close</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+
+            </ScrollView>
+          </ImageBackground>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f3ae0a',
+  },
   container: {
     flex: 1,
+    paddingTop: 0,
   },
   navbar: {
     flexDirection: 'row',
@@ -318,7 +375,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     padding: 20,
-    paddingTop: 50,
+    paddingTop: 20,
   },
   navTitle: {
     fontSize: 20,
@@ -328,7 +385,7 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
     width: '100%',
-    marginTop: 40,
+    marginTop: 20,
   },
   scrollViewContent: {
     paddingHorizontal: 20,
@@ -383,26 +440,11 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'white',
-    padding: 20,
+    padding: 25,
     borderRadius: 10,
     width: '70%',
     height: '50%',
     alignItems: 'center',
-  },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 20,
-  },
-  modalButton: {
-    backgroundColor: '#f3830a',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-  },
-  modalButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -431,16 +473,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Darker background for contrast
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   successModalContent: {
     backgroundColor: 'white',
-    padding: 30, // Increased padding
-    borderRadius: 15, // More rounded corners
-    width: '80%', // Adjust width for better appearance
+    padding: 30,
+    borderRadius: 15,
+    width: '80%',
     alignItems: 'center',
-    elevation: 5, // Add shadow for Android
-    shadowColor: '#000', // Shadow for iOS
+    elevation: 5,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -448,10 +490,10 @@ const styles = StyleSheet.create({
   successModalText: {
     fontSize: 18,
     marginBottom: 20,
-    textAlign: 'center', // Center the text
+    textAlign: 'center',
   },
   successModalButton: {
-    backgroundColor: '#f3830a', //  Orange background for the button
+    backgroundColor: '#f3830a',
     paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 25,
@@ -462,6 +504,30 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   successIcon: {
-    marginBottom: 15, // Space between icon and text
+    marginBottom: 15,
+  },
+  closeIconContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 1,
+    padding: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0)',
+    borderRadius: 50,
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '35%',
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginLeft: 10,
+    fontSize: 25,
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
