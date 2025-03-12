@@ -1,27 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  FlatList, 
-  ImageBackground, 
-  Image, 
-  ScrollView, 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  ImageBackground,
+  Image,
+  ScrollView,
   Alert,
-  Linking 
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useStripe } from '@stripe/stripe-react-native'; // Import Stripe SDK
+import { useStripe } from '@stripe/stripe-react-native';
 
 const PackageScreen = () => {
   const router = useRouter();
   const scrollViewRef = useRef();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe(); // Initialize Stripe hooks
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [userType, setUserType] = useState(null);
-  const [loading, setLoading] = useState(false); // Loading state for button
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const packages = [
     {
@@ -38,7 +41,6 @@ const PackageScreen = () => {
     },
   ];
 
-  // Fetch session data on component mount
   useEffect(() => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
 
@@ -54,7 +56,7 @@ const PackageScreen = () => {
         }
 
         const data = await response.json();
-        setUserType(data.userType); // Set user type based on session
+        setUserType(data.userType);
       } catch (error) {
         console.error('Error fetching session data:', error);
         Alert.alert('Error', 'Failed to fetch session data.');
@@ -64,65 +66,58 @@ const PackageScreen = () => {
     fetchSessionData();
   }, []);
 
-  // Handle selecting a package
   const handleSelectPackage = (pkgId) => {
     setSelectedPackage(pkgId);
   };
 
-  // Create a Payment Intent and initialize PaymentSheet
-  // Example: Log clientSecret on frontend for debugging
-const initializePaymentSheet = async (priceId) => {
-  setLoading(true);
-  try {
-    const response = await fetch('http://192.168.1.5:5000/api/stripe/create-checkout-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ priceId }),
-    });
+  const initializePaymentSheet = async (priceId) => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://192.168.1.5:5000/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId }),
+      });
 
-    const { clientSecret } = await response.json();
-    console.log('Received clientSecret:', clientSecret); // Log clientSecret for debugging
+      const { clientSecret } = await response.json();
+      if (!clientSecret) {
+        throw new Error('PaymentIntent client secret is missing.');
+      }
 
-    if (!clientSecret) {
-      throw new Error('PaymentIntent client secret is missing.');
-    }
+      const { error } = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+      });
 
-    const { error } = await initPaymentSheet({
-      paymentIntentClientSecret: clientSecret,
-      returnURL: Linking.openURL('/agencydash'), // May need to change this URL depending on your setup
-    });
+      if (error) {
+        Alert.alert('Error', error.message);
+        setLoading(false);
+        return;
+      }
 
-    if (error) {
-      Alert.alert('Error', error.message);
       setLoading(false);
-      return;
+      openPaymentSheet();
+    } catch (error) {
+      console.error('Error initializing payment sheet:', error);
+      Alert.alert('Error', 'Unable to process payment at the moment.');
+      setLoading(false);
     }
+  };
 
-    setLoading(false);
-    openPaymentSheet();
-  } catch (error) {
-    console.error('Error initializing payment sheet:', error);
-    Alert.alert('Error', 'Unable to process payment at the moment.');
-    setLoading(false);
-  }
-};
-
-
-  // Present the Payment Sheet
   const openPaymentSheet = async () => {
     const { error } = await presentPaymentSheet();
 
     if (error) {
-      Alert.alert('Error', error.message);
+      setModalMessage('Payment failed. Please try again.');
+      setIsSuccess(false);
     } else {
-      Alert.alert('Success', 'Payment successful!');
-      router.push('/agencydash'); // Navigate to confirmation page (or other logic)
+      setModalMessage('Payment successful! Thank you for your purchase.');
+      setIsSuccess(true);
     }
+    setModalVisible(true);
   };
 
-  // Handle Next button press
   const handleNext = async () => {
     if (!selectedPackage) {
       Alert.alert('No Package Selected', 'Please select a package before proceeding.');
@@ -139,10 +134,10 @@ const initializePaymentSheet = async (priceId) => {
 
     const priceId =
       selectedPackage === 1
-        ? 'price_1QU1Mq02CrK5yqCqx9csNo64' // Replace with Stripe Price ID for Basic
-        : 'price_1QU1Nt02CrK5yqCqi9yehdop'; // Replace with Stripe Price ID for Premium
+        ? 'price_1QU1Mq02CrK5yqCqx9csNo64'
+        : 'price_1QU1Nt02CrK5yqCqi9yehdop';
 
-    initializePaymentSheet(priceId); // Initialize and show the payment sheet
+    initializePaymentSheet(priceId);
   };
 
   return (
@@ -199,11 +194,48 @@ const initializePaymentSheet = async (priceId) => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal for Payment Result */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, isSuccess ? styles.successModal : styles.failureModal]}>
+            <Ionicons
+              name={isSuccess ? 'checkmark-circle' : 'close-circle'}
+              size={50}
+              color={isSuccess ? 'green' : 'red'}
+            />
+            <Text style={styles.modalText}>{modalMessage}</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                setModalVisible(false);
+                if (isSuccess) {
+                  if (userType === 'individual') {
+                    router.push('/individualdash'); // Redirect to Individual Dashboard
+                  } else if (userType === 'company') {
+                    router.push('/agencydash'); // Redirect to Agency Dashboard
+                  }
+                }
+              }}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 };
 
+
 export default PackageScreen;
+
 
 const styles = StyleSheet.create({
   container: {
@@ -323,5 +355,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold'
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  successModal: {
+    backgroundColor: '#e0ffe5',
+  },
+  failureModal: {
+    backgroundColor: '#ffe0e0',
+  },
+  modalText: {
+    marginTop: 10,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  closeButton: {
+    marginTop: 20,
+    backgroundColor: 'black',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   }
 });

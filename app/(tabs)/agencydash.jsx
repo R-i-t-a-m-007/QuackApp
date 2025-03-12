@@ -133,7 +133,7 @@ export default function AgencyDash() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.cancelButton} onPress={() => router.push('/individualdash')}>
+        <TouchableOpacity style={styles.cancelButton}>
           <Text style={styles.cancelButtonText}>Cancel Subscription</Text>
         </TouchableOpacity>
       </ImageBackground>

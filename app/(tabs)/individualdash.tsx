@@ -49,7 +49,7 @@ export default function IndividualDash() {
           colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
           style={styles.navbar}
         >
-          <TouchableOpacity onPress={() => router.push('/agencydash')}>
+          <TouchableOpacity onPress={() => router.push('/packagescreen')}>
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.navTitle}>Dashboard</Text>

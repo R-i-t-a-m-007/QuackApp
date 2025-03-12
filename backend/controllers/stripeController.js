@@ -37,3 +37,4 @@ export const createPaymentIntent = async (req, res) => {
     res.status(500).json({ error: 'Failed to create payment intent. Please try again later.' });
   }
 };
+
