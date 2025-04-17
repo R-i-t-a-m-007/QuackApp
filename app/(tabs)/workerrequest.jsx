@@ -9,7 +9,6 @@ import {
   StatusBar,
   ScrollView,
   ActivityIndicator,
-  Modal,
   Animated,
   Image,
   Alert
@@ -25,19 +24,16 @@ export default function WorkerRequests() {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [workerToDelete, setWorkerToDelete] = useState(null);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const slideAnim = useState(new Animated.Value(300))[0]; // Start off-screen
-  const [userDetails, setUserDetails] = useState(null); // State to hold user details
-  const [error, setError] = useState(null); // State to hold error messages
+  const slideAnim = useState(new Animated.Value(300))[0];
+  const [userDetails, setUserDetails] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Fetch pending workers from the backend
   const fetchWorkers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/pending', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/pending', {
         method: 'GET',
         credentials: 'include',
       });
@@ -55,11 +51,10 @@ export default function WorkerRequests() {
     }
   };
 
-  // Fetch user info to determine the package
   const fetchUserInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -81,13 +76,13 @@ export default function WorkerRequests() {
   useFocusEffect(
     React.useCallback(() => {
       fetchWorkers();
-      fetchUserInfo(); // Fetch user info when the component is focused
+      fetchUserInfo();
     }, [])
   );
 
   const approveWorker = async (workerId) => {
     try {
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/approve/${workerId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/workers/approve/${workerId}`, {
         method: 'PUT',
         credentials: 'include',
       });
@@ -106,7 +101,7 @@ export default function WorkerRequests() {
 
   const deleteWorker = async (workerId) => {
     try {
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/${workerId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/workers/decline/${workerId}`, {
         method: 'DELETE',
       });
 
@@ -126,7 +121,7 @@ export default function WorkerRequests() {
     setSelectedWorker(worker);
     setIsModalVisible(true);
     Animated.timing(slideAnim, {
-      toValue: 0, // Slide to the top
+      toValue: 0,
       duration: 300,
       useNativeDriver: true,
     }).start();
@@ -134,7 +129,7 @@ export default function WorkerRequests() {
 
   const closeModal = () => {
     Animated.timing(slideAnim, {
-      toValue: 300, // Slide back down
+      toValue: 300,
       duration: 300,
       useNativeDriver: true,
     }).start(() => setIsModalVisible(false));
@@ -146,14 +141,14 @@ export default function WorkerRequests() {
 
   const handleBackPress = async () => {
     if (userDetails) {
-      const userPackage = userDetails.package; // Get the package from user details
+      const userPackage = userDetails.package;
       if (userPackage === 'Pro') {
-        router.push('/prouserdash'); // Redirect to Pro User Dashboard
+        router .push('/prouserdash');
       } else if (userPackage === 'Basic') {
-        router.push('/basicuserdash'); // Redirect to Basic User Dashboard
+        router.push('/basicuserdash');
       }
     } else {
-      router.push('/companydash'); // Fallback if user details are not available
+      router.push('/companydash');
     }
   };
 
@@ -222,7 +217,7 @@ export default function WorkerRequests() {
                           <View style={styles.cardInfo}>
                             <Text style={styles.cardTextBold}>{worker.name}</Text>
                             <Text style={styles.cardText}>
-                              {worker.role}, {worker.department}
+                              {worker.email}
                             </Text>
                           </View>
                         </View>
@@ -230,15 +225,30 @@ export default function WorkerRequests() {
                         <View style={styles.buttonContainer}>
                           <TouchableOpacity
                             style={styles.acceptButton}
-                            onPress={() => approveWorker(worker._id)}
+                            onPress={() => {
+                              Alert.alert(
+                                'Confirm Accept',
+                                'Are you sure you want to accept this worker?',
+                                [
+                                  { text: 'Cancel', style: 'cancel' },
+                                  { text: 'Accept', onPress: () => approveWorker(worker._id) }
+                                ]
+                              );
+                            }}
                           >
                             <Text style={styles.buttonText}>Accept</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.declineButton}
                             onPress={() => {
-                              setWorkerToDelete(worker._id);
-                              setShowConfirmModal(true);
+                              Alert.alert(
+                                'Confirm Decline',
+                                'Are you sure you want to decline this worker?',
+                                [
+                                  { text: 'Cancel', style: 'cancel' },
+                                  { text: 'Decline', onPress: () => deleteWorker(worker._id) }
+                                ]
+                              );
                             }}
                           >
                             <Text style={styles.buttonText}>Decline</Text>
@@ -274,7 +284,7 @@ export default function WorkerRequests() {
 
                 <View style={styles.modalDetails}>
                   <View style={styles.detailsRow}>
-                    <Text style={styles.modalText}><Text style={styles.boldText}>Name:</Text></Text>
+                    <Text style={styles.modalText}><Text style={styles .boldText}>Name:</Text></Text>
                     <Text style={styles.modalText}>{selectedWorker.name}</Text>
                   </View>
                   <View style={styles.detailsRow}>
@@ -286,54 +296,16 @@ export default function WorkerRequests() {
                     <Text style={styles.modalText}>{selectedWorker.phone}</Text>
                   </View>
                   <View style={styles.detailsRow}>
-                    <Text style={styles.modalText}><Text style={styles.boldText}>Address:</Text></Text>
-                    <Text style={styles.modalText}>{selectedWorker.address}</Text>
-                  </View>
-                  <View style={styles.detailsRow}>
                     <Text style={styles.modalText}><Text style={styles.boldText}>User  Code:</Text></Text>
                     <Text style={styles.modalText}>{selectedWorker.userCode}</Text>
                   </View>
                   <View style={styles.detailsRow}>
-                    <Text style={styles.modalText}><Text style={styles.boldText}>Department:</Text></Text>
-                    <Text style={styles.modalText}>{selectedWorker.department}</Text>
-                  </View>
-                  <View style={styles.detailsRow}>
-                    <Text style={styles.modalText}><Text style={styles.boldText}>Role:</Text></Text>
-                    <Text style={styles.modalText}>{selectedWorker.role}</Text>
+                    <Text style={styles.modalText}><Text style={styles.boldText}>Request Date:</Text></Text>
+                    <Text style={styles.modalText}>{new Date(selectedWorker.joiningDate).toLocaleDateString('en-GB')}</Text>
                   </View>
                 </View>
-                
               </View>
             </Animated.View>
-          )}
-
-          {showConfirmModal && (
-            <Modal
-              transparent={true}
-              animationType="fade"
-              visible={showConfirmModal}
-              onRequestClose={() => setShowConfirmModal(false)}
-            >
-              <View style={styles.modalContainer}>
-                <View style={styles.confirmationContent}>
-                  <Text style={styles.confirmationText}>Are you sure you want to delete this worker?</Text>
-                  <View style={styles.confirmationButtons}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        deleteWorker(workerToDelete);
-                        setShowConfirmModal(false);
-                      }}
-                      style={styles.confirmationButton}
-                    >
-                      <Text style={styles.confirmationButtonText}>Yes</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => setShowConfirmModal(false)} style={styles.confirmationButton}>
-                      <Text style={styles.confirmationButtonText}>No</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
           )}
         </ImageBackground>
       </SafeAreaView>
@@ -456,7 +428,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#f9d34a',
-  borderTopLeftRadius: 20,
+    borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     elevation: 5,
@@ -507,65 +479,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   declineButton: {
-    backgroundColor: 'black', // Red background for decline button
+    backgroundColor: 'black', // Green background for accept button
     borderRadius: 30,
     padding: 10,
     flex: 1,
-    marginLeft: 5,
+    marginRight: 5,
     alignItems: 'center',
   },
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
     alignItems: 'center',
-  },
-  confirmationContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
-  },
-  confirmationText: {
-    fontSize: 16,
-    marginBottom: 15,
-  },
-  confirmationButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  confirmationButton: {
-    backgroundColor: '#f3830a',
-    padding: 10,
-    borderRadius: 5,
-    flex: 1,
-    marginHorizontal: 5,
-    alignItems: 'center',
-  },
-  confirmationButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  successModal: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    position: 'absolute',
-    top: '40%',
-    left: '10%',
-    right: '10%',
-    elevation: 10,
-    shadowColor: 'rgba(0,0,0,0.25)',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-  successModalContent: {
-    alignItems: 'center',
-  },
-  successModalText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
   },
   centeredView: {
     flex: 1,

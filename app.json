@@ -19,7 +19,8 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to upload images.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "useNextNotificationsApi": true
     },
     "android": {
       "adaptiveIcon": {

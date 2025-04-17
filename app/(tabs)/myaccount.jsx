@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export default function MyAccount() {
   const router = useRouter();
@@ -31,7 +33,7 @@ export default function MyAccount() {
   const fetchUserInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -68,10 +70,12 @@ export default function MyAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              await fetch('https://quackapp-backend.onrender.com/api/auth/logout', {
+              await fetch('https://api.thequackapp.com/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include',
               });
+              await AsyncStorage.removeItem('authToken');
+              await AsyncStorage.removeItem('userPackage');
               router.replace('/login');
             } catch (error) {
               console.error('Logout error:', error);
@@ -83,6 +87,77 @@ export default function MyAccount() {
       { cancelable: false }
     );
   };
+
+  const handleCancelSubscription = async () => {
+    Alert.alert(
+      'Cancel Subscription',
+      'Are you sure you want to cancel your subscription? Your benefits will continue until the end of the billing cycle.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            try {
+              const response = await fetch('https://api.thequackapp.com/api/stripe/cancel-subscription', {
+                method: 'POST',
+                credentials: 'include',
+              });
+  
+              const data = await response.json();
+  
+              if (response.ok) {
+                Alert.alert('Success', data.message);
+                fetchUserInfo(); // Refresh user data
+              } else {
+                Alert.alert('Error', data.message || 'Failed to cancel subscription');
+              }
+            } catch (error) {
+              console.error('Cancel Subscription Error:', error);
+              Alert.alert('Error', 'An error occurred while canceling the subscription.');
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? All the workers under this User will be deleted too.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetch(`https://api.thequackapp.com/api/auth/users/${userDetails._id}`, {
+                method: 'DELETE',
+                credentials: 'include',
+              });
+  
+              const data = await response.json();
+  
+              if (response.ok) {
+                Alert.alert('Account Deleted', data.message || 'Your account has been deleted.');
+                await AsyncStorage.clear();
+                router.replace('/login');
+              } else {
+                Alert.alert('Error', data.message || 'Failed to delete account.');
+              }
+            } catch (error) {
+              console.error('Delete account error:', error);
+              Alert.alert('Error', 'An error occurred while deleting your account.');
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+  
 
   // Function to upload image
   const uploadImage = async (uri) => {
@@ -96,7 +171,7 @@ export default function MyAccount() {
       reader.onloadend = async () => {
         const base64data = reader.result;
 
-        const res = await fetch(`https://quackapp-backend.onrender.com/api/auth/${userDetails._id}/upload-image`, {
+        const res = await fetch(`https://api.thequackapp.com/api/auth/${userDetails._id}/upload-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -227,13 +302,33 @@ export default function MyAccount() {
                     icon="home" 
                     onUpgrade={userDetails.package === 'Basic' ? handleUpgrade : null} 
                   />
-                  <DetailCard label="Address" value={userDetails.address || 'N/A'} icon="location" />
-                  <DetailCard label="Postcode" value={userDetails.postcode || 'N/A'} icon="home" />
+                  <DetailCard 
+                    label="Subscription" 
+                    value={userDetails.subscribed ? 'Active' : 'Cancelled'} 
+                    icon="checkmark-circle" 
+                  />
+                  {!userDetails.subscribed && (
+                    <DetailCard 
+                      label="Subscription Ends" 
+                      value={new Date(userDetails.subscriptionEndDate).toLocaleDateString() || 'N/A'} 
+                      icon="calendar" 
+                    />
+                  )}
                 </View>
+                <View style={styles.buttonRow}>
+                    <TouchableOpacity style={styles.halfButton} onPress={handleLogout}>
+                      <Text style={styles.logoutButtonText}>Logout</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.halfButton} onPress={handleDeleteAccount}>
+                      <Text style={styles.logoutButtonText}>Delete Account</Text>
+                    </TouchableOpacity>
+                  </View>
 
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                  <Text style={styles.logoutButtonText}>Logout</Text>
-                </TouchableOpacity>
+                  {userDetails.subscribed && (
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleCancelSubscription}>
+                      <Text style={styles.logoutButtonText}>Cancel Subscription</Text>
+                    </TouchableOpacity>
+                  )}
               </View>
             )}
           </ScrollView>
@@ -364,7 +459,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
     width: '90%',
-    marginTop: 20,
+    marginTop: 10,
   },
   logoutButtonText: {
     color: '#fff',
@@ -416,4 +511,28 @@ const styles = StyleSheet.create({
     zIndex: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '90%',
+    marginTop: 10,
+  },
+  
+  halfButton: {
+    flex: 1,
+    backgroundColor: '#000',
+    borderRadius: 25,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  test :{
+    flex: 1,
+    backgroundColor: '#000',
+    borderRadius: 25,
+    paddingVertical: 20,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  }
+  
 });

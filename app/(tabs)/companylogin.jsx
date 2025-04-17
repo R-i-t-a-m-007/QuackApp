@@ -42,7 +42,7 @@ export default function CustomScreen() {
     setIsLoading(true); // Start loading state
 
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/companies/login', {
+      const response = await fetch('https://api.thequackapp.com/api/companies/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

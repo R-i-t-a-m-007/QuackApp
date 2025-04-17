@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ImageBackgr
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
 
 const { height, width } = Dimensions.get('window');
 
@@ -13,8 +14,6 @@ export default function RegisterPage() {
     username: '',
     email: '',
     phone: '',
-    address: '',
-    postcode: '',
     password: '',
     package: '', // Keep package empty for now
   });
@@ -30,8 +29,6 @@ export default function RegisterPage() {
       username: '',
       email: '',
       phone: '',
-      address: '',
-      postcode: '',
       password: '',
       package: '', // Keep package empty for now
     });
@@ -91,7 +88,11 @@ export default function RegisterPage() {
     }
   
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/register', {
+
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      dataToSend.expoPushToken = token;
+      
+      const response = await fetch('https://api.thequackapp.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend),
@@ -149,13 +150,12 @@ export default function RegisterPage() {
             <Text style={styles.registerText}>REGISTRATION</Text>
             <View style={styles.underline} />
 
-            {['username', 'email', 'phone', 'address', 'postcode', 'password'].map((field, index) => (
+            {['username', 'email', 'phone', 'password'].map((field, index) => (
               <View style={styles.inputContainer} key={index}>
                 <Ionicons 
                   name={field === 'username' ? 'person' : 
                         field === 'email' ? 'mail' : 
-                        field === 'phone' ? 'call' : 
-                        field === 'address' ? 'location' : 'home'} 
+                        field === 'phone' ? 'call' : 'home'} 
                   size={20} 
                   color="white" 
                   style={styles.icon} 

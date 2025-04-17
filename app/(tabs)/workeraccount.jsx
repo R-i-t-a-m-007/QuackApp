@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 export default function WorkerAccount() {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -28,11 +30,12 @@ export default function WorkerAccount() {
   const fetchWorkerInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/me', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/me', {
         method: 'GET',
         credentials: 'include',
       });
       const data = await response.json();
+      
 
       if (response.ok) {
         setWorkerDetails(data);
@@ -40,7 +43,7 @@ export default function WorkerAccount() {
         setError(data.message || 'Unable to fetch worker data.');
       }
     } catch (error) {
-      setError('Error fetching worker data');
+      // setError('Error fetching worker data');
       console.error('Fetch error:', error);
     } finally {
       setLoading(false);
@@ -65,10 +68,12 @@ export default function WorkerAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              await fetch('https://quackapp-backend.onrender.com/api/workers/logout', {
+              await fetch('https://api.thequackapp.com/api/workers/logout', {
                 method: 'POST',
                 credentials: 'include',
               });
+  
+              await AsyncStorage.removeItem('workerToken'); // 👈 Remove worker token from storage
               router.replace('/login');
             } catch (error) {
               console.error('Logout error:', error);
@@ -80,6 +85,46 @@ export default function WorkerAccount() {
       { cancelable: false }
     );
   };
+  
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetch(
+                `https://api.thequackapp.com/api/workers/workers/${workerDetails._id}`,
+                {
+                  method: 'DELETE',
+                  credentials: 'include',
+                }
+              );
+  
+              const data = await response.json();
+  
+              if (response.ok) {
+                Alert.alert('Deleted', 'Your account has been deleted.');
+                router.replace('/login');
+              } else {
+                Alert.alert('Error', data.message || 'Failed to delete account.');
+              }
+            } catch (error) {
+              console.error('Delete error:', error);
+              Alert.alert('Error', 'Something went wrong while deleting your account.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+  
 
   // Function to upload image
   const uploadImage = async (uri) => {
@@ -92,7 +137,7 @@ export default function WorkerAccount() {
       reader.onloadend = async () => {
         const base64data = reader.result;
 
-        const res = await fetch(`https://quackapp-backend.onrender.com/api/workers/${workerDetails._id}/upload-image`, {
+        const res = await fetch(`https://api.thequackapp.com/api/workers/${workerDetails._id}/upload-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -188,11 +233,11 @@ export default function WorkerAccount() {
                   <DetailCard label="Code" value={workerDetails.userCode || 'N/A'} icon="code-slash" />
                   <DetailCard label="Email" value={workerDetails.email || 'N/A'} icon="mail" />
                   <DetailCard label="Phone" value={workerDetails.phone || 'N/A'} icon="call" />
-                  <DetailCard label="Role" value={workerDetails.role || 'N/A'} icon="briefcase" />
-                  <DetailCard label="Department" value={workerDetails.department || 'N/A'} icon="business" />
-                  <DetailCard label="Address" value={workerDetails.address || 'N/A'} icon="location" />
                   <DetailCard label="Joining Date" value={workerDetails.joiningDate ? new Date(workerDetails.joiningDate).toLocaleDateString() : 'N/A'} icon="calendar" />
                 </View>
+                <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+                  <Text style={styles.deleteButtonText}>Delete Account</Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                   <Text style={styles.logoutButtonText}>Logout</Text>
@@ -323,7 +368,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
     width: '90%',
-    marginTop: 20,
+    marginTop: 10,
   },
   logoutButtonText: {
     color: '#fff',
@@ -350,4 +395,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  deleteButton: {
+    backgroundColor: 'black',
+    borderRadius: 25,
+    paddingVertical: 15,
+    alignItems: 'center',
+    width: '90%',
+    marginBottom: 0,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  
 });

@@ -9,6 +9,8 @@ import {
   ImageBackground,
   StatusBar,
   Alert,
+  Modal,
+  Button,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,12 +27,14 @@ export default function JobDetails() {
   const [availableWorkers, setAvailableWorkers] = useState([]);
   const [showAvailableWorkers, setShowAvailableWorkers] = useState(false);
   const [requestedWorkers, setRequestedWorkers] = useState(new Set()); // Track requested workers
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState(null);
   const scrollViewRef = useRef();
 
   const fetchJobDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/jobs/${jobId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/jobs/${jobId}`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -64,7 +68,7 @@ export default function JobDetails() {
     try {
       const jobDate = new Date(job.date);
       const response = await fetch(
-        `https://quackapp-backend.onrender.com/api/workers/shift-date?date=${jobDate.toISOString().split('T')[0]}&shift=${job.shift}`,
+        `https://api.thequackapp.com/api/workers/shift-date?date=${jobDate.toISOString().split('T')[0]}&shift=${job.shift}`,
         { method: 'GET', headers: { 'Content-Type': 'application/json' } }
       );
 
@@ -84,30 +88,27 @@ export default function JobDetails() {
     }
   };
 
-  const handleRequestWorker = async (workerId) => {
-    if (requestedWorkers.has(workerId)) {
-      Alert.alert('Info', 'You have already requested this worker.');
-      return;
-    }
-
+  const handleDeleteJob = async () => {
     try {
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/invite/${workerId}`, {
-        method: 'POST',
+      const response = await fetch(`https://api.thequackapp.com/api/jobs/job/${jobToDelete}`, {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ jobId }),
       });
 
       if (response.ok) {
-        setRequestedWorkers((prev) => new Set(prev).add(workerId)); // Add workerId to requested workers
-        Alert.alert('Success', 'Worker invited successfully!');
+        Alert.alert('Success', 'Job deleted successfully!');
+        router.push('/joblist'); // Navigate back to the job list
       } else {
         const errorData = await response.json();
-        Alert.alert('Error', errorData.message || 'Failed to invite worker.');
+        Alert.alert('Error', errorData.message || 'Failed to delete job.');
       }
     } catch (error) {
-      Alert.alert('Error', 'An error occurred while inviting the worker.');
+      Alert.alert('Error', 'An error occurred while deleting the job.');
+    } finally {
+      setIsModalVisible(false);
+      setJobToDelete(null);
     }
   };
 
@@ -124,7 +125,7 @@ export default function JobDetails() {
     return (
       <View style={styles.centeredView}>
         <Text style={styles.centeredText}>Job not found.</Text>
-        <TouchableOpacity onPress={() => router.push('/joblist')} style ={styles.backButton}>
+        <TouchableOpacity onPress={() => router.push('/joblist')} style={styles.backButton}>
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -145,11 +146,38 @@ export default function JobDetails() {
               <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
             <Text style={styles.navTitle}>Job Details</Text>
-            <Ionicons name="notifications" size={24} color="white" />
+            <Ionicons name="notifications" size={24} color ="white" />
           </LinearGradient>
           <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollView}>
             <View style={styles.jobDetailsContainer}>
               <Text style={styles.jobTitle}>{job.title}</Text>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                  setJobToDelete(job._id); // Set the job ID to delete
+                  setIsModalVisible(true); // Show the confirmation modal
+                }}
+              >
+                <Ionicons name="trash" size={24} color="red" />
+              </TouchableOpacity>
+              {/* Confirmation Modal */}
+              <Modal
+                transparent={true}
+                animationType="fade"
+                visible={isModalVisible}
+                onRequestClose={() => setIsModalVisible(false)}
+              >
+                <View style={styles.modalContainer}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Confirm Deletion</Text>
+                    <Text>Are you sure you want to delete this job?</Text>
+                    <View style={styles.modalButtons}>
+                      <Button title="Cancel" onPress={() => setIsModalVisible(false)} />
+                      <Button title="Delete" onPress={handleDeleteJob} color="red" />
+                    </View>
+                  </View>
+                </View>
+              </Modal>
               <View style={styles.jobInfoContainer}>
                 <View style={styles.jobInfoRow}>
                   <View style={styles.iconContainer}>
@@ -183,15 +211,6 @@ export default function JobDetails() {
                       <View key={worker._id} style={styles.workerCard}>
                         <Ionicons name="person-circle" size={30} color="#f3ae0a" />
                         <Text style={styles.workerName}>{worker.name}</Text>
-                        <TouchableOpacity 
-                          onPress={() => handleRequestWorker(worker._id)} 
-                          style={requestedWorkers.has(worker._id) || worker.invitedJobs.includes(jobId) ? styles.requestedButton : styles.requestButton}
-                          disabled={requestedWorkers.has(worker._id) || worker.invitedJobs.includes(jobId)} // Disable button if already requested
-                        >
-                          <Text style={styles.requestButtonText}>
-                            {requestedWorkers.has(worker._id) || worker.invitedJobs.includes(jobId) ? 'Requested' : 'Request'}
-                          </Text>
-                        </TouchableOpacity>
                       </View>
                     ))
                   )}
@@ -243,7 +262,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  navbar : {
+  navbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -278,6 +297,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 25,
   },
+  deleteButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 20,
+  },
   jobInfoContainer: {
     alignItems: 'center',
     marginBottom: 20,
@@ -295,7 +344,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     marginTop: 5,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   workersRequired: {
     fontSize: 16,
@@ -375,7 +424,7 @@ const styles = StyleSheet.create({
   requestButton: {
     marginLeft: 'auto',
     padding: 10,
-    backgroundColor: '#f3ae0a',
+ backgroundColor: '#f3ae0a',
     borderRadius: 5,
   },
   requestedButton: {

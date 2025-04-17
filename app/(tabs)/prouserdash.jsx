@@ -12,7 +12,7 @@ export default function IndividualDash() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -51,7 +51,7 @@ export default function IndividualDash() {
               <Ionicons name="person" size={26} color="white" onPress={() => router.push('/myaccount')} />
             </TouchableOpacity>
             <Text style={styles.navTitle}>Dashboard</Text>
-            <Ionicons name="notifications" size={24} color="white" />
+            <Ionicons name="chatbubble-ellipses" size={24} color="white" onPress={()=>router.push('/messages')} />
           </LinearGradient>
 
           <ScrollView
@@ -87,7 +87,7 @@ export default function IndividualDash() {
                     style={styles.card}
                   >
                     <Ionicons name="people" size={50} color="black" />
-                    <Text style={styles.cardText}>Add Company</Text>
+                    <Text style={styles.cardText}>Department/Location</Text>
                   </LinearGradient>
                 </TouchableOpacity>
 
@@ -100,7 +100,7 @@ export default function IndividualDash() {
                     style={styles.card}
                   >
                     <Ionicons name="list" size={50} color="black" />
-                    <Text style={styles.cardText}>Company List</Text>
+                    <Text style={styles.cardText}>View Locations/Departments</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
@@ -162,7 +162,19 @@ export default function IndividualDash() {
                 
               </View>
 
-              <View style={styles.centeredcardRow}>
+              <View style={styles.cardRow}>
+              <TouchableOpacity
+                  style={styles.cardWrapper}
+                  onPress={() => router.push('/checkshift')}
+                >
+                  <LinearGradient
+                    colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
+                    style={styles.card}
+                  >
+                    <Ionicons name="calendar" size={50} color="black" />
+                    <Text style={styles.cardText}>Calendar</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.cardWrapper}
                   onPress={() => router.push('/myaccount')}
@@ -285,6 +297,7 @@ const styles = StyleSheet.create({
     color: 'black',
     fontWeight: 'bold',
     fontSize: 14,
+    textAlign:'center',
   },
   profileImage: {
     width: '100%',

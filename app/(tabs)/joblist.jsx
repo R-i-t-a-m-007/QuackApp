@@ -26,7 +26,7 @@ export default function JobList() {
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/jobs/company', {
+      const response = await fetch('https://api.thequackapp.com/api/jobs/company', {
         method: 'GET',
         credentials: 'include',
       });
@@ -56,7 +56,7 @@ export default function JobList() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -143,14 +143,18 @@ export default function JobList() {
                       <View style={styles.card}>
                         <View style={styles.cardHeader}>
                           <Text style={styles.cardTextBold}>{index + 1}. {job.title}</Text>
-                          <View style={[styles.statusBadge, job.jobStatus === 'complete' ? styles.activeStatus : styles.inactiveStatus]}>
-                            <Text style={styles.statusText}>{job.jobStatus === 'complete' ? "Complete" : "Incomplete"}</Text>
+                          <View style={[styles.statusBadge, job.jobStatus === true ? styles.activeStatus : styles.inactiveStatus]}>
+                            <Text style={styles.statusText}>{job.jobStatus === true ? "Completed" : "Incomplete"}</Text>
                           </View>
                         </View>
                         <View style={styles.cardBody}>
                           <View style={styles.row}>
                             <Ionicons name="location" size={18} color="#666" />
                             <Text style={styles.cardText}> {job.location}</Text>
+                          </View>
+                          <View style={styles.row}>
+                          <Ionicons name="time" size={18} color="#666" />
+                            <Text style={styles.cardText}> Date: {new Date(job.date).toLocaleDateString()}</Text>
                           </View>
                           <View style={styles.row}>
                             <Ionicons name="time" size={18} color="#666" />

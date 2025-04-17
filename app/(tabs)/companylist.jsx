@@ -41,7 +41,7 @@ export default function CompanyList() {
   const fetchCompanies = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/companies/list');
+      const response = await fetch('https://api.thequackapp.com/api/companies/list');
       const data = await response.json();
       if (response.ok) {
         setCompanies(data);
@@ -66,7 +66,7 @@ export default function CompanyList() {
 
   const updateCompany = async () => {
     try {
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/companies/${selectedCompany._id}`, {
+      const response = await fetch(`http://quackapp-env-1.eba-gwsnxptf.us-east-1.elasticbeanstalk.com/api/companies/${selectedCompany._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ export default function CompanyList() {
 
   const deleteCompany = async (companyId) => {
     try {
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/companies/${companyId}`, {
+      const response = await fetch(`http://quackapp-env-1.eba-gwsnxptf.us-east-1.elasticbeanstalk.com/api/companies/${companyId}`, {
         method: 'DELETE',
       });
 

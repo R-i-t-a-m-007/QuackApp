@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { StripeProvider } from '@stripe/stripe-react-native';
+import usePushNotification from '@/hooks/usePushNotification'; // ✅ Fix import
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -15,6 +16,8 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  const { expoPushToken } = usePushNotification(); // ✅ Use hook
 
   useEffect(() => {
     if (loaded) {
@@ -28,10 +31,8 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      {/* StripeProvider wraps the entire app */}
       <StripeProvider publishableKey="pk_test_51QMRNe02CrK5yqCqYqkToVNNtUNhxjGtg8vEQQgQGy8Ca8RRtVinaKSvoVXrtcEHI3grdIZqg2tr0EpmPG2UxqBc00l0TowYoM">
         <Stack>
-          {/* Include your app's screens */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>

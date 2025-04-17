@@ -15,7 +15,7 @@ export default function AgencyDash() {
   const fetchTotalCompanies = async () => {
     setLoading(true); // Start loading
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/companies/list'); // Adjust URL accordingly
+      const response = await fetch('https://api.thequackapp.com/api/companies/list'); // Adjust URL accordingly
       const data = await response.json();
       if (response.ok) {
         setTotalCompanies(data.length); // Assuming the data is an array of companies

@@ -49,87 +49,6 @@ const PackageScreen = () => {
   const handleSelectPackage = (pkgId) => {
     setSelectedPackage(pkgId);
   };
-  
-
-  const initializePaymentSheet = async (priceId) => {
-    setLoading(true);
-    try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ priceId }),
-      });
-
-      const { clientSecret } = await response.json();
-      if (!clientSecret) {
-        throw new Error('PaymentIntent client secret is missing.');
-      }
-
-      const { error } = await initPaymentSheet({
-        paymentIntentClientSecret: clientSecret,
-      });
-
-      if (error) {
-        Alert.alert('Error', error.message);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(false);
-      openPaymentSheet();
-    } catch (error) {
-      console.error('Error initializing payment sheet:', error);
-      Alert.alert('Error', 'Unable to process payment at the moment.');
-      setLoading(false);
-    }
-  };
-
-  const openPaymentSheet = async () => {
-    const { error } = await presentPaymentSheet();
-
-    if (error) {
-      setModalMessage('Payment failed. Please try again.');
-      setIsSuccess(false);
-      setModalVisible(true); // Show failure modal immediately
-    } else {
-      setModalMessage('Payment successful! Thank you for your purchase.');
-      setIsSuccess(true);
-      await storeSelectedPackage(); // Call the function to store the selected package
-    }
-  };
-
-  const storeSelectedPackage = async () => {
-    const packageName = selectedPackage === 1 ? 'Basic' : 'Pro'; // Determine package name
-
-    try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/store-package', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ packageName }),
-      });
-
-      if (response.ok) {
-        // Show success modal after storing the package
-        setModalVisible(true);
-        // Redirect based on the package selected
-        if (packageName === 'Basic') {
-          router.push('/basicuserdash'); // Redirect to Company Dashboard
-        } else {
-          router.push('/prouserdash'); // Redirect to Individual Dashboard
-        }
-      } else {
-        Alert.alert('Error', 'Failed to store selected package. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error storing selected package:', error);
-      Alert.alert('Error', 'Something went wrong while storing the package.');
-    }
-  };
 
   const handleNext = async () => {
     if (!selectedPackage) {
@@ -139,21 +58,114 @@ const PackageScreen = () => {
 
     const priceId =
       selectedPackage === 1
-        ? 'price_1QU1Mq02CrK5yqCqx9csNo64'
-        : 'price_1QU1Nt02CrK5yqCqi9yehdop';
+        ? 'price_1QU1Mq02CrK5yqCqx9csNo64' // Basic price ID
+        : 'price_1QU1Nt02CrK5yqCqi9yehdop'; // Premium price ID
 
-    initializePaymentSheet(priceId);
+    try {
+      setLoading(true);
+
+      // Step 1: Get Customer ID
+      const response = await fetch('https://api.thequackapp.com/api/auth/get-customer-id', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) throw new Error('Failed to retrieve customer ID.');
+      
+      const { customerId } = await response.json();
+      if (!customerId) throw new Error('Customer ID not found.');
+
+      
+      // Step 2: Create Subscription
+      const subscriptionResponse = await fetch(
+        'https://api.thequackapp.com/api/stripe/create-subscription',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customerId, priceId }),
+        }
+      );
+
+      const subscriptionData = await subscriptionResponse.json();
+
+      if (!subscriptionData.subscription) {
+        throw new Error('Subscription creation failed.');
+      }
+
+      const paymentIntentClientSecret = subscriptionData.subscription.latest_invoice.payment_intent.client_secret;
+
+      if (!paymentIntentClientSecret) {
+        throw new Error('PaymentIntent client secret is missing.');
+      }
+
+      console.log('🔑 PaymentIntent Client Secret:', paymentIntentClientSecret);
+
+      // Step 3: Initialize Payment Sheet
+      const { error: sheetError } = await initPaymentSheet({
+        paymentIntentClientSecret,
+        merchantDisplayName: "Your App Name",
+      });
+
+      if (sheetError) {
+        console.error('❌ Payment Sheet Error:', sheetError);
+        Alert.alert('Error', sheetError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Step 4: Present Payment Sheet
+      const { error: paymentError } = await presentPaymentSheet();
+
+      if (paymentError) {
+        console.error('❌ Payment Failed:', paymentError);
+        setModalMessage('Payment failed. Please try again.');
+        setIsSuccess(false);
+        setModalVisible(true);
+      } else {
+        console.log('✅ Payment Successful');
+        setModalMessage('Payment successful! Thank you for your purchase.');
+        setIsSuccess(true);
+        await storeSelectedPackage();
+      }
+    } catch (error) {
+      console.error('🚨 Error:', error);
+      Alert.alert('Error', error.message || 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const storeSelectedPackage = async () => {
+    const packageName = selectedPackage === 1 ? 'Basic' : 'Pro';
+
+    try {
+      const response = await fetch('https://api.thequackapp.com/api/auth/store-package', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageName }),
+      });
+
+      if (response.ok) {
+        setModalVisible(true);
+        if (packageName === 'Basic') {
+          router.push('/basicuserdash');
+        } else {
+          router.push('/prouserdash');
+        }
+      } else {
+        Alert.alert('Error', 'Failed to store selected package.');
+      }
+    } catch (error) {
+      console.error('🚨 Error storing package:', error);
+      Alert.alert('Error', 'Something went wrong while storing the package.');
+    }
   };
 
   return (
     <>
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
-        <ImageBackground
-          source={require('@/assets/images/main-bg.jpg')}
-          style={styles.container}
-          resizeMode="cover"
-        >
+        <ImageBackground source={require('@/assets/images/main-bg.jpg')} style={styles.container} resizeMode="cover">
           <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollViewContainer}>
             <View style={styles.headerContainer}>
               <Image source={require('@/assets/images/logonew.png')} style={styles.logo} resizeMode="contain" />
@@ -189,49 +201,12 @@ const PackageScreen = () => {
                 </View>
               )}
               keyExtractor={(item) => item.id.toString()}
-              contentContainerStyle={styles.carouselContainer}
             />
 
-            <TouchableOpacity 
-              style={styles.registerButton} 
-              onPress={handleNext}
-              disabled={loading}
-            >
-              <Text style={styles.registerButtonText}>
-                {loading ? 'Processing...' : 'Next'}
-              </Text>
+            <TouchableOpacity style={styles.registerButton} onPress={handleNext} disabled={loading}>
+              <Text style={styles.registerButtonText}>{loading ? 'Processing...' : 'Next'}</Text>
             </TouchableOpacity>
           </ScrollView>
-
-          {/* Modal for Payment Result */}
-          <Modal
-            animationType="fade"
-            transparent={true}
-            visible={modalVisible}
-            onRequestClose={() => setModalVisible(false)}
-          >
-            <View style={styles.modalContainer}>
-              <View style={[styles.modalContent, isSuccess ? styles.successModal : styles.failureModal]}>
-                <Ionicons
-                  name={isSuccess ? 'checkmark-circle' : 'close-circle'}
-                  size={50}
-                  color={isSuccess ? 'green' : 'red'}
-                />
-                <Text style={styles.modalText}>{modalMessage}</Text>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => {
-                    setModalVisible(false);
-                    if (isSuccess) {
-                      // Redirect handled in storeSelectedPackage
-                    }
-                  }}
-                >
-                  <Text style={styles.closeButtonText}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
         </ImageBackground>
       </SafeAreaView>
     </>
@@ -239,6 +214,7 @@ const PackageScreen = () => {
 };
 
 export default PackageScreen;
+
 
 const styles = StyleSheet.create({
   safeArea: {

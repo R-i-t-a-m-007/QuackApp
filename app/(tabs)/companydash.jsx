@@ -12,7 +12,7 @@ export default function CompanyDash() {
   const fetchCompanyInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend.onrender.com/api/companies/company', {
+      const response = await fetch('https://api.thequackapp.com/api/companies/company', {
         method: 'GET',
         credentials: 'include',
       });
@@ -53,7 +53,7 @@ export default function CompanyDash() {
               <Ionicons name="arrow-back" size={30} color="white" />
             </TouchableOpacity>
             <Text style={styles.navTitle}>Dashboard</Text>
-            <Ionicons name="notifications" size={24} color="white" />
+            <Ionicons name="chatbubble-ellipses" size={24} color="white" onPress={()=>router.push('/messages')} />
           </LinearGradient>
 
           <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -76,14 +76,14 @@ export default function CompanyDash() {
               <View style={styles.cardRow}>
                 <TouchableOpacity style={styles.cardWrapper} onPress={() => router.push('/workerlist')}>
                   <LinearGradient colors={['#f3ae0a', '#f3ae0a', '#f3830a']} style={styles.card}>
-                    <Ionicons name="people" size={50} color="black" />
+                    <Ionicons name="person" size={50} color="black" />
                     <Text style={styles.cardText}>WORKER LIST</Text>
                   </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.cardWrapper} onPress={() => router.push('/workerrequest')}>
                   <LinearGradient colors={['#f3ae0a', '#f3ae0a', '#f3830a']} style={styles.card}>
-                    <Ionicons name="add-circle" size={50} color="black" />
+                    <Ionicons name="people" size={50} color="black" />
                     <Text style={styles.cardText}>WORKER REQUESTS</Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -106,7 +106,19 @@ export default function CompanyDash() {
               </View>
 
               {/* Third Row - Centered Card */}
-              <View style={styles.centeredCardRow}>
+              <View style={styles.cardRow}>
+              <TouchableOpacity
+                  style={styles.cardWrapper}
+                  onPress={() => router.push('/checkshift')}
+                >
+                  <LinearGradient
+                    colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
+                    style={styles.card}
+                  >
+                    <Ionicons name="calendar" size={50} color="black" />
+                    <Text style={styles.cardText}>Check Shifts</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.cardWrapper} onPress={() => router.push('/companyaccount')}>
                   <LinearGradient colors={['#f3ae0a', '#f3ae0a', '#f3830a']} style={styles.card}>
                     <Ionicons name="person-circle" size={50} color="black" />

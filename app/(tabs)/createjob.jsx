@@ -30,7 +30,6 @@ export default function CreateJob() {
   const [loading, setLoading] = useState(false);
   const [userDetails, setUserDetails] = useState(null); // State to hold user details
   const [error, setError] = useState(null); // State to hold error messages
-  const [jobCreated, setJobCreated] = useState(false); // State to track if job was created successfully
 
   const handleCreateJob = async () => {
     // Validate input fields
@@ -52,7 +51,7 @@ export default function CreateJob() {
 
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/jobs/create', {
+      const response = await fetch('https://api.thequackapp.com/api/jobs/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,7 +65,6 @@ export default function CreateJob() {
       if (response.ok) {
         const data = JSON.parse(textResponse);
         Alert.alert('Success', 'Job created successfully!');
-        setJobCreated(true); // Set jobCreated to true
       } else {
         const data = JSON.parse(textResponse);
         Alert.alert('Error', data.message || 'Failed to create job.');
@@ -87,7 +85,7 @@ export default function CreateJob() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -204,22 +202,16 @@ export default function CreateJob() {
                 <Text style={styles.label}>Job Shift</Text>
                 <View style={styles.shiftSelector}>
                   <TouchableOpacity
-                    style={[styles.shiftButton, jobShift === 'Morning' && styles.selectedShift]}
-                    onPress={() => setJobShift('Morning')}
+                    style={[styles.shiftButton, jobShift === 'AM' && styles.selectedShift]}
+                    onPress={() => setJobShift('AM')}
                   >
-                    <Text style={styles.shiftButtonText}>Morning</Text>
+                    <Text style={styles.shiftButtonText}>AM</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.shiftButton, jobShift === 'Afternoon' && styles.selectedShift]}
-                    onPress={() => setJobShift('Afternoon')}
+                    style={[styles.shiftButton, jobShift === 'PM' && styles.selectedShift]}
+                    onPress={() => setJobShift('PM')}
                   >
-                    <Text style={styles.shiftButtonText}>Afternoon</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.shiftButton, jobShift === 'Night' && styles.selectedShift]}
-                    onPress={() => setJobShift('Night')}
-                  >
-                    <Text style={styles.shiftButtonText}>Night</Text>
+                    <Text style={styles.shiftButtonText}>PM</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -255,13 +247,6 @@ export default function CreateJob() {
                 <Text style={styles.createButtonText}>Create Job</Text>
               )}
             </TouchableOpacity>
-
-            {/* New Button to Search for Workers */}
-            {jobCreated && ( // Only show this button if the job was created successfully
-              <TouchableOpacity style={styles.searchButton} onPress={() => router.push('/joblist')}>
-                <Text style={styles.searchButtonText}>Search for Workers</Text>
-              </TouchableOpacity>
-            )}
           </ScrollView>
         </ImageBackground>
       </SafeAreaView>

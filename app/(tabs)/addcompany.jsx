@@ -96,7 +96,7 @@ export default function AddCompany() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/companies/add', {
+      const response = await fetch('https://api.thequackapp.com/api/companies/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

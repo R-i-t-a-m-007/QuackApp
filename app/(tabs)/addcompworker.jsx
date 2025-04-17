@@ -70,7 +70,7 @@ const AddWorker = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/add', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

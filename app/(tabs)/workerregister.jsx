@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Notifications from 'expo-notifications';
 
 export default function WorkerRegistration() {
   const router = useRouter();
@@ -40,7 +41,7 @@ export default function WorkerRegistration() {
   };
 
   const handleRegister = async () => {
-    if (!name || !email || !phone || !role || !department || !address || !password || !userCode) {
+    if (!name || !email || !phone || !password || !userCode) {
       setErrorMessage('Please fill in all fields.');
       setShowErrorModal(true);
       return;
@@ -49,7 +50,10 @@ export default function WorkerRegistration() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/add', {
+
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+
+      const response = await fetch('https://api.thequackapp.com/api/workers/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,12 +62,10 @@ export default function WorkerRegistration() {
           name,
           email,
           phone,
-          role,
-          department,
-          address,
           joiningDate: joiningDate.toISOString().split('T')[0], // Format date to YYYY-MM-DD
           password,
           userCode,
+          expoPushToken: token,
         }),
       });
 
@@ -144,27 +146,6 @@ export default function WorkerRegistration() {
                   onChangeText={setPhone}
                   keyboardType='phone-pad'
                 />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Role"
-                  placeholderTextColor="white"
-                  value={role}
-                  onChangeText={setRole}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Department"
-                  placeholderTextColor="white"
-                  value={department}
-                  onChangeText={setDepartment}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Address"
-                  placeholderTextColor="white"
-                  value={address}
-                  onChangeText={setAddress}
-                />
                 <TouchableOpacity onPress={showDatePickerModal} style={styles.input}>
                   <Text style={{ color: 'white' }}>
                     {joiningDate.toISOString().split('T')[0] || 'Joining Date'}
@@ -188,7 +169,7 @@ export default function WorkerRegistration() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="User  Code"
+                  placeholder="UserCode"
                   placeholderTextColor="white"
                   value={userCode}
                   onChangeText={setUserCode}

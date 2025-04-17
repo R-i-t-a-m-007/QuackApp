@@ -8,9 +8,13 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
-  ImageBackground,
   SafeAreaView,
+  Modal,
+  Alert,
+  Linking,
+  Button,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
@@ -20,15 +24,17 @@ const MyTasksScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);                   
+  const [showSearch, setShowSearch] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [jobIdToDelete, setJobIdToDelete] = useState(null);
   const slideAnim = useState(new Animated.Value(300))[0]; // Start off-screen
 
   const fetchMyTasks = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/jobs/mine', {
+      const response = await fetch('https://api.thequackapp.com/api/jobs/mine', {
         method: 'GET',
         credentials: 'include',
       });
@@ -76,12 +82,76 @@ const MyTasksScreen = () => {
     }).start(() => setIsModalVisible(false));
   };
 
+  const confirmDelete = (jobId) => {
+    Alert.alert(
+      "Confirm Deletion",
+      "Are you sure you want to delete this job?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Yes", onPress: () => handleFirstConfirmation(jobId) }
+      ]
+    );
+  };
+  
+  const handleFirstConfirmation = (jobId) => {
+    Alert.alert(
+      "Accept and Read Terms",
+      "Please read the terms and conditions before accepting.",
+      [
+        { text: "Read Terms", onPress: async () => await WebBrowser.openBrowserAsync('https://quackapp-admin.netlify.app/terms-and-conditions') },
+        { text: "Accept", onPress: () => handleDelete(jobId) }
+      ]
+    );
+  };
+  
+  const handleDelete = async (jobId) => {
+    console.log("🗑️ Job ID to Delete:", jobId); // Debugging log
+  
+    if (!jobId) {
+      Alert.alert("Error", "Job ID is missing.");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`https://api.thequackapp.com/api/jobs/remove-accepted/${jobId}`, {
+        method: "PUT",
+        credentials: "include",
+      });
+  
+      if (response.ok) {
+        setTasks((prevTasks) => prevTasks.filter((task) => task._id !== jobId));
+        Alert.alert("Success", "Job removed successfully!");
+      } else {
+        const errorData = await response.json();
+        Alert.alert("Error", errorData.message || "Failed to remove job.");
+      }
+    } catch (error) {
+      console.error("❌ Error deleting job:", error);
+      Alert.alert("Error", "An error occurred while deleting the job.");
+    }
+  };
+  
+
+  const showTermsPopup = async () => {
+    Alert.alert(
+      'Terms and Conditions',
+      'Please read the terms and conditions before accepting the job.',
+      [
+        { text: 'Read Terms', onPress: async () => await WebBrowser.openBrowserAsync('https://quackapp-admin.netlify.app/terms-and-conditions') },
+        { text: 'Accept', style: 'cancel' },
+      ]
+    );
+  };
+  
+
   const renderTaskItem = ({ item }) => (
     <TouchableOpacity onPress={() => openModal(item)}>
       <View style={styles.taskCard}>
         <View style={styles.taskHeader}>
           <Text style={styles.taskTitle}>{item.title}</Text>
-          <MaterialIcons name="work" size={24} color="#f3ae0a" />
+          <TouchableOpacity onPress={() => confirmDelete(item._id)}>
+            <MaterialIcons name="delete" size={24} color="red" /> {/* Delete icon */}
+          </TouchableOpacity>
         </View>
         <Text style={styles.taskDescription}>{item.description}</Text>
         <View style={styles.taskDetailsContainer}>
@@ -121,7 +191,7 @@ const MyTasksScreen = () => {
             <Ionicons name="chevron-down-circle" size={30} color="#f3830a" />
           </TouchableOpacity>
         </View>
-        <View style ={styles.modalDetails}>
+        <View style={styles.modalDetails}>
           <View style={styles.detailsRow}>
             <Text style={styles.modalText}><Text style={styles.boldText}>Description:</Text></Text>
             <Text style={styles.modalText}>{selectedTask.description}</Text>
@@ -151,7 +221,7 @@ const MyTasksScreen = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#f3ae0a" />
-        <Text style={styles.loadingText}>Loading tasks...</Text>
+        <Text style={styles.loadingText}>Loading Tasks...</Text>
       </View>
     );
   }
@@ -206,6 +276,25 @@ const MyTasksScreen = () => {
             {renderModalContent()}
           </Animated.View>
         )}
+        {isDeleteModalVisible && (
+          <Modal
+            transparent={true}
+            animationType="fade"
+            visible={isDeleteModalVisible}
+            onRequestClose={() => setIsDeleteModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent2}>
+                <Text style={styles.modalTitle}>Confirm Deletion</Text>
+                <Text>Are you sure you want to delete this job?</Text>
+                <View style={styles.modalButtons}>
+                    <Button title='Delete' onPress={handleDelete} color="red" />
+                    <Button title='Cancel' onPress={() => setIsDeleteModalVisible(false)}  />
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -214,7 +303,7 @@ const MyTasksScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f3ae0a',
+ backgroundColor: '#f3ae0a',
   },
   container: {
     flex: 1,
@@ -338,6 +427,13 @@ const styles = StyleSheet.create({
   modalContent: {
     alignItems: 'center',
   },
+  modalContent2:{
+    width: '80%',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -371,6 +467,36 @@ const styles = StyleSheet.create({
   },
   boldText: {
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 20,
+  },
+  confirmButton: {
+    backgroundColor: 'red',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginRight: 5,
+  },
+  cancelButton: {
+    backgroundColor: 'gray',
+    padding: 10,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 5,
+  },
+  buttonText: {
+    color: 'white',
+    textAlign: 'center',
   },
 });
 

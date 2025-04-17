@@ -33,9 +33,6 @@ export default function WorkerList() {
   const [workerName, setWorkerName] = useState('');
   const [workerEmail, setWorkerEmail] = useState('');
   const [workerPhone, setWorkerPhone] = useState('');
-  const [workerRole, setWorkerRole] = useState('');
-  const [workerDepartment, setWorkerDepartment] = useState('');
-  const [workerAddress, setWorkerAddress] = useState('');
   const [workerJoiningDate, setWorkerJoiningDate] = useState('');
   const [userDetails, setUserDetails] = useState(null); // State to hold user details
   const [error, setError] = useState(null); // State to hold error messages
@@ -49,7 +46,7 @@ export default function WorkerList() {
   const fetchWorkers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/approved', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/approved', {
         method: 'GET',
         credentials: 'include',
       });
@@ -70,7 +67,7 @@ export default function WorkerList() {
   const fetchUserInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -102,13 +99,10 @@ export default function WorkerList() {
         name: workerName,
         email: workerEmail,
         phone: workerPhone,
-        role: workerRole,
-        department: workerDepartment,
-        address: workerAddress,
         joiningDate: workerJoiningDate,
       };
 
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/${selectedWorker._id}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/workers/${selectedWorker._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +134,7 @@ export default function WorkerList() {
 
   const deleteWorker = async (workerId) => {
     try {
-      const response = await fetch(` https://quackapp-backend.onrender.com/api/workers/${workerId}`, {
+      const response = await fetch(` https://api.thequackapp.com/api/workers/${workerId}`, {
         method: 'DELETE',
       });
 
@@ -165,9 +159,6 @@ export default function WorkerList() {
     setWorkerName(worker.name);
     setWorkerEmail(worker.email);
     setWorkerPhone(worker.phone);
-    setWorkerRole(worker.role);
-    setWorkerDepartment(worker.department);
-    setWorkerAddress(worker.address);
     setWorkerJoiningDate(worker.joiningDate);
     setIsModalVisible(true);
     Animated.timing(slideAnim, {
@@ -275,7 +266,7 @@ export default function WorkerList() {
                           <View style={styles.cardInfo}>
                             <Text style={styles.cardTextBold}>{worker.name}</Text>
                             <Text style={styles.cardText}>
-                              {worker.role}, {worker.department}
+                              {worker.email}
                             </Text>
                           </View>
                         </View>
@@ -321,20 +312,12 @@ export default function WorkerList() {
                     <Text style={styles.modalText}>{selectedWorker.phone}</Text>
                   </View>
                   <View style={styles.detailsRow}>
-                    <Text style={styles.modalText}><Text style={styles.boldText}>Address:</Text></Text>
-                    <Text style={styles.modalText}>{selectedWorker.address}</Text>
-                  </View>
-                  <View style={styles.detailsRow}>
                     <Text style={styles.modalText}><Text style={styles.boldText}>Employee Code:</Text></Text>
-                    <Text style={styles.modalText}>{selectedWorker.comp_code}</Text>
+                    <Text style={styles.modalText}>{selectedWorker.userCode}</Text>
                   </View>
                   <View style={styles.detailsRow}>
-                    <Text style={styles.modalText}><Text style={styles.boldText}>Department:</Text></Text>
-                    <Text style={styles.modalText}>{selectedWorker.department}</Text>
-                  </View>
-                  <View style={styles.detailsRow}>
-                    <Text style={styles.modalText}><Text style={styles.boldText}>Role:</Text></Text>
-                    <Text style={styles.modalText}>{selectedWorker.role}</Text>
+                    <Text style={styles.modalText}><Text style={styles.boldText}>Joining Date:</Text></Text>
+                    <Text style={styles.modalText}>{new Date(selectedWorker.joiningDate).toLocaleDateString('en-GB')}</Text>
                   </View>
                 </View>
                 <View style={styles.modalButtons}>

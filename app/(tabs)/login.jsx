@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,9 +15,11 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
 
 const { height, width } = Dimensions.get('window');
 
@@ -33,27 +35,81 @@ export default function Login() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [loading, setLoading] = useState(false); // Loading state
 
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const userToken = await AsyncStorage.getItem('authToken');
+        const workerToken = await AsyncStorage.getItem('workerToken');
+
+        if (userToken) {
+          const response = await fetch('https://api.thequackapp.com/api/auth/me', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${userToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const userPackage = data.user.package;
+
+            if (userPackage === 'Pro') {
+              router.replace('/prouserdash');
+            } else if (userPackage === 'Basic') {
+              router.replace('/basicuserdash');
+            } else {
+              // fallback if no valid package
+              router.replace('/dashboard');
+            }
+            return;
+          } else {
+            // Invalid token, clear it
+            await AsyncStorage.removeItem('authToken');
+          }
+        }
+
+        if (workerToken) {
+          router.replace('/workerdash');
+          return;
+        }
+
+        // If no token, stay on login screen
+      } catch (error) {
+        console.error('Error checking login status:', error);
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
   const handleLogin = async () => {
     setLoading(true); // Start loading
 
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/login', {
+
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+
+      const response = await fetch('https://api.thequackapp.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }), // Only username and password
+        body: JSON.stringify({ username, password, expoPushToken: token }), // Only username and password
       });
       const data = await response.json();
+      
 
       if (response.ok) {
         // Check the user's package after successful login
-        const userResponse = await fetch('https://quackapp-backend.onrender.com/api/auth/me', {
+        await AsyncStorage.setItem('authToken', data.token); // Save token
+        const userResponse = await fetch('https://api.thequackapp.com/api/auth/me', {
           method: 'GET',
-          credentials: 'include',
+          headers: { 'Authorization': `Bearer ${data.token}` }, // Send token
         });
 
         if (userResponse.ok) {
           const userData = await userResponse.json();          
           const userPackage = userData.user.package; // Assuming the package is in the user object
+          await AsyncStorage.setItem('userPackage', userData.user.package); // Save package
 
           // Redirect based on the package
           if (userPackage === 'Pro') {
@@ -64,22 +120,54 @@ export default function Login() {
             Alert.alert('Error', 'User  package is not defined.');
           }
         } else {
+          const errorData = await userResponse.json();
+          console.log('User fetch failed:', errorData);
           Alert.alert('Error', 'Failed to fetch user data.');
         }
       } else {
+        console.log('Login failed:', data);
         setShowErrorModal(true);
       }
     } catch (error) {
+      console.error('Login Error:', error);
       Alert.alert('Error', 'Something went wrong. Please try again later.');
     } finally {
       setLoading(false); // Stop loading
     }
   };
 
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const token = await AsyncStorage.getItem('authToken');
+      const userPackage = await AsyncStorage.getItem('userPackage');
+  
+      if (token && userPackage) {
+        if (userPackage === 'Pro') {
+          router.push('/prouserdash');
+        } else if (userPackage === 'Basic') {
+          router.push('/basicuserdash');
+        }
+      }
+    };
+  
+    checkLoginStatus();
+  }, []);
+
+  useEffect(() => {
+    const checkWorkerLogin = async () => {
+      const worker = await AsyncStorage.getItem('worker');
+      if (worker) {
+        router.replace('/workerdash');
+      }
+    };
+  
+    checkWorkerLogin();
+  }, []);
+
   
   const handleResetPassword = async () => {
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/auth/reset-password', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp, newPassword }),
@@ -162,7 +250,7 @@ export default function Login() {
 
                 <View style={styles.companyLoginContainer}>
                   <TouchableOpacity onPress={() => router.push('/companylogin')}>
-                    <Text style={styles.companyLoginText}>Login as a Company</Text>
+                    <Text style={styles.companyLoginText}>Department/Location</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.companyLoginContainer}>

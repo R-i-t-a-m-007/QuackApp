@@ -16,12 +16,12 @@ const CalendarScreen = () => {
   const [loading, setLoading] = useState(false); // Loader state for initial loading
   const [loadingscreen, setLoadingScreen] = useState(true);
 
-  const shifts = ['Morning', 'Afternoon', 'Evening'];
+  const shifts = ['AM', 'PM'];
 
   // Fetch the logged-in worker's details
   const fetchLoggedInWorker = async () => {
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/me', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/me', {
         method: 'GET',
         credentials: 'include', // Include credentials for session management
       });
@@ -43,7 +43,7 @@ const CalendarScreen = () => {
   // Fetch worker availability using the new route
   const fetchWorkerAvailability = async (id) => {
     try {
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/${id}/availability-status`, {
+      const response = await fetch(`https://api.thequackapp.com/api/workers/${id}/availability-status`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -105,7 +105,7 @@ const CalendarScreen = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/workers/${workerId}/availability`, {
+      const response = await fetch(`https://api.thequackapp.com/api/workers/${workerId}/availability`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -15,6 +15,8 @@ import {
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+
 
 const TasksScreen = () => {
   const [tasks, setTasks] = useState([]);
@@ -24,6 +26,8 @@ const TasksScreen = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [jobIdToAccept, setJobIdToAccept] = useState(null);
+
   const slideAnim = useState(new Animated.Value(300))[0]; // Start off-screen
 
   const navigation = useNavigation();
@@ -31,7 +35,7 @@ const TasksScreen = () => {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/jobs/worker', {
+      const response = await fetch('https://api.thequackapp.com/api/jobs/worker', {
         method: 'GET',
         credentials: 'include',
       });
@@ -61,13 +65,42 @@ const TasksScreen = () => {
     task.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const confirmAccept = (jobId) => {
+    Alert.alert(
+      "Confirm",
+      "Are you sure you want to accept this job?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Yes", onPress: () => handleFirstConfirmation(jobId) }
+      ]
+    );
+  };
+  
+  const handleFirstConfirmation = (jobId) => {
+    Alert.alert(
+      "Accept and Read Terms",
+      "Please read the terms and conditions before accepting.",
+      [
+        { text: "Read Terms", onPress: async () => await WebBrowser.openBrowserAsync('https://quackapp-admin.netlify.app/terms-and-conditions/accept') },
+        { text: "Accept", onPress: () => handleAcceptJob(jobId) }
+      ]
+    );
+  };
+  
   const handleAcceptJob = async (jobId) => {
+    console.log("🔹 Job ID to Accept:", jobId); // Debugging log
+  
+    if (!jobId) {
+      Alert.alert('Error', 'Job ID is missing.');
+      return;
+    }
+  
     try {
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/jobs/accept/${jobId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/jobs/accept/${jobId}`, {
         method: 'PUT',
         credentials: 'include',
       });
-
+  
       if (response.ok) {
         const data = await response.json();
         Alert.alert('Success', data.message);
@@ -77,14 +110,16 @@ const TasksScreen = () => {
         Alert.alert('Error', errorData.message || 'Failed to accept job.');
       }
     } catch (error) {
-      console.error('Error accepting job:', error);
+      console.error('❌ Error accepting job:', error);
       Alert.alert('Error', 'An error occurred while accepting the job.');
     }
   };
+  
+  
 
   const handleDeclineJob = async (jobId) => {
     try {
-      const response = await fetch(`https://quackapp-backend.onrender.com/api/jobs/decline/${jobId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/jobs/decline/${jobId}`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -154,7 +189,7 @@ const TasksScreen = () => {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.acceptButton}
-            onPress={() => handleAcceptJob(item._id)}
+            onPress={() => confirmAccept(item._id)}
           >
             <Text style={styles.buttonText}>Accept</Text>
           </TouchableOpacity>

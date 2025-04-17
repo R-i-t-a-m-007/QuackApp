@@ -20,7 +20,7 @@ export default function PaymentScreen() {
     const setupPaymentSheet = async () => {
       setLoading(true);
       try {
-        const response = await fetch('https://quackapp-backend.onrender.com/api/payment-intent', {
+        const response = await fetch('https://api.thequackapp.com/api/payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount: parseFloat(price) * 100 }), // Convert to cents

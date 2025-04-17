@@ -17,6 +17,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
+
 
 const { height, width } = Dimensions.get('window');
 
@@ -39,11 +42,14 @@ export default function WorkerLogin() {
       setShowErrorModal(true);
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/login', {
+
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+
+      const response = await fetch('https://api.thequackapp.com/api/workers/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,12 +58,18 @@ export default function WorkerLogin() {
           userCode: workerCode,
           email,
           password,
+          expoPushToken: token,
         }),
       });
-
+  
       const data = await response.json();
-
+  
       if (response.ok) {
+        // ✅ Store token and worker info in AsyncStorage
+        await AsyncStorage.setItem('workerToken', data.token);
+        await AsyncStorage.setItem('workerInfo', JSON.stringify(data.worker));
+  
+        // 🚀 Navigate to worker dashboard
         router.push('/workerdash');
       } else {
         setErrorMessage(data.message || 'An error occurred. Please try again.');

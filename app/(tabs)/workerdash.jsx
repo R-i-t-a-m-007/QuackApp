@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, StatusBar, ActivityIndicator, SafeAreaView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, StatusBar, ActivityIndicator, SafeAreaView, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -13,11 +13,12 @@ export default function WorkerDash() {
   const fetchWorkerInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/me', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/me', {
         method: 'GET',
         credentials: 'include',
       });
       const data = await response.json();
+      
 
       if (response.ok) {
         setWorkerDetails(data); // Set the worker details from the response
@@ -25,7 +26,7 @@ export default function WorkerDash() {
         setError(data.message || 'Unable to fetch worker data.');
       }
     } catch (error) {
-      setError('Error fetching worker data');
+      // setError('Error fetching worker data');
       console.error('Fetch error:', error);
     } finally {
       setLoading(false);
@@ -56,26 +57,26 @@ export default function WorkerDash() {
               <Ionicons name="arrow-back" size={30} color="white" />
             </TouchableOpacity>
             <Text style={styles.navTitle}>Worker Dashboard</Text>
-            <Ionicons name="notifications" size={24} color="white" />
+            <Ionicons name="chatbubble-ellipses" size={24} color="white" onPress={()=>router.push('/workermessagescreen')} />
           </LinearGradient>
-
+          <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.profileSection}>
           <View style={styles.profileImageContainer}>
-  <LinearGradient
-    colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
-    style={styles.profileImageGradient}
-  >
-    {workerDetails.image ? (
-      <Image
-        source={{ uri: workerDetails.image }}
-        style={styles.profileImage}
-        resizeMode="cover"
-      />
-    ) : (
-      <Ionicons name="person" size={50} color="white" />
-    )}
-  </LinearGradient>
-</View>
+            <LinearGradient
+              colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
+              style={styles.profileImageGradient}
+            >
+              {workerDetails.image ? (
+                <Image
+                  source={{ uri: workerDetails.image }}
+                  style={styles.profileImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Ionicons name="person" size={50} color="white" />
+              )}
+            </LinearGradient>
+          </View>
 
             {loading ? (
               <ActivityIndicator size="large" color="white" />
@@ -110,7 +111,7 @@ export default function WorkerDash() {
                   style={styles.card}
                 >
                   <Ionicons name="calendar" size={50} color="black" />
-                  <Text style={styles.cardText}>SCHEDULE</Text>
+                  <Text style={styles.cardText}>MY CALENDAR</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -122,15 +123,20 @@ export default function WorkerDash() {
                   style={styles.card}
                 >
                   <Ionicons name="briefcase" size={50} color="black" />
-                  < Text style={styles.cardText}>MY TASKS</Text>
+                  < Text style={styles.cardText}>ACCEPTED JOBS</Text>
                 </LinearGradient>
               </TouchableOpacity>
 
+              <TouchableOpacity style={styles.cardWrapper} onPress={() => router.push('/myshifts')}>
+                <LinearGradient colors={['#f3ae0a', '#f3ae0a', '#f3830a']} style={styles.card}>
+                  <Ionicons name="time" size={50} color="black" />
+                  <Text style={styles.cardText}>MY AVAILABILITY</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.centeredCardRow}>
               <TouchableOpacity style={styles.cardWrapper} onPress={() => router.push('/workeraccount')}>
-                <LinearGradient
-                  colors={['#f3ae0a', '#f3ae0a', '#f3830a']}
-                  style={styles.card}
-                >
+                <LinearGradient colors={['#f3ae0a', '#f3ae0a', '#f3830a']} style={styles.card}>
                   <Ionicons name="person-circle" size={50} color="black" />
                   <Text style={styles.cardText}>MY ACCOUNT</Text>
                 </LinearGradient>
@@ -138,7 +144,7 @@ export default function WorkerDash() {
             </View>
           </View>
 
-          
+          </ScrollView>
         </ImageBackground>
       </SafeAreaView>
     </>
@@ -152,9 +158,13 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    alignItems: 'center',
+    // alignItems: 'center',
     backgroundColor: 'transparent',
-    paddingTop: 0,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingBottom: 20,
   },
   navbar: {
     flexDirection: 'row',
@@ -259,6 +269,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 60,
+  },
+  centeredCardRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 20,
   },
   
 });

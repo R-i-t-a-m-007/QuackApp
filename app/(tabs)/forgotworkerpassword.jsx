@@ -26,7 +26,7 @@ const ForgotWorkerPasswordScreen = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('https://quackapp-backend.onrender.com/api/workers/forgot-password', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
