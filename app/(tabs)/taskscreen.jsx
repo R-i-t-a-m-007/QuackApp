@@ -172,7 +172,7 @@ const TasksScreen = () => {
             </View>
             <View style={styles.taskDetail}>
               <MaterialIcons name="calendar-today" size={16} color="#555" />
-              <Text style={styles.taskDetails}>{new Date(item.date).toLocaleDateString()}</Text>
+              <Text style={styles.taskDetails}>{new Date(item.date).toLocaleDateString('en-GB')}</Text>
             </View>
           </View>
           <View style={styles.taskDetailColumn}>
@@ -226,7 +226,7 @@ const TasksScreen = () => {
           </View>
           <View style={styles.detailsRow}>
             <Text style={styles.modalText}><Text style={styles.boldText}>Date:</Text></Text>
-            <Text style={styles.modalText}>{new Date(selectedTask.date).toLocaleDateString()}</Text>
+            <Text style={styles.modalText}>{new Date(selectedTask.date).toLocaleDateString('en-GB')}</Text>
           </View>
           <View style={styles.detailsRow}>
             <Text style={styles.modalText}><Text style={styles.boldText}>Shift:</Text></Text>

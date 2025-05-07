@@ -98,7 +98,7 @@ export default function WorkerDash() {
                   style={styles.card}
                 >
                   <Ionicons name="list" size={50} color="black" />
-                  <Text style={styles.cardText}>TASK REQUESTS</Text>
+                  <Text style={styles.cardText}>SHIFTS AVAILABLE</Text>
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -123,7 +123,7 @@ export default function WorkerDash() {
                   style={styles.card}
                 >
                   <Ionicons name="briefcase" size={50} color="black" />
-                  < Text style={styles.cardText}>ACCEPTED JOBS</Text>
+                  < Text style={styles.cardText}>ACCEPTED SHIFTS</Text>
                 </LinearGradient>
               </TouchableOpacity>
 

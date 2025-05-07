@@ -169,7 +169,7 @@ export default function WorkerRegistration() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="UserCode"
+                  placeholder="Code"
                   placeholderTextColor="white"
                   value={userCode}
                   onChangeText={setUserCode}

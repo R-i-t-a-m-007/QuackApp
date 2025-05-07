@@ -24,12 +24,11 @@ export default function JobDetails() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [availableWorkers, setAvailableWorkers] = useState([]);
-  const [showAvailableWorkers, setShowAvailableWorkers] = useState(false);
-  const [requestedWorkers, setRequestedWorkers] = useState(new Set()); // Track requested workers
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [jobToDelete, setJobToDelete] = useState(null);
   const scrollViewRef = useRef();
+  const [assignedWorkers, setAssignedWorkers] = useState([]);
+  const [showAssignedWorkers, setShowAssignedWorkers] = useState(false);
 
   const fetchJobDetails = useCallback(async () => {
     try {
@@ -54,35 +53,32 @@ export default function JobDetails() {
   useFocusEffect(
     useCallback(() => {
       fetchJobDetails();
-      setAvailableWorkers([]);
-      setShowAvailableWorkers(false);
-      setRequestedWorkers(new Set()); // Reset requested workers on focus
+      fetchAssignedWorkers();
     }, [fetchJobDetails])
   );
 
-  const handleSearchWorkers = async () => {
+  const fetchAssignedWorkers = async () => {
     if (!job) return;
-
+  
     setSearchLoading(true);
-    setShowAvailableWorkers(false);
+    setShowAssignedWorkers(false);
     try {
-      const jobDate = new Date(job.date);
-      const response = await fetch(
-        `https://api.thequackapp.com/api/workers/shift-date?date=${jobDate.toISOString().split('T')[0]}&shift=${job.shift}`,
-        { method: 'GET', headers: { 'Content-Type': 'application/json' } }
-      );
-
+      const response = await fetch(`https://api.thequackapp.com/api/jobs/assigned-workers/${job._id}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+  
       if (response.ok) {
         const data = await response.json();
-        setAvailableWorkers(data);
-        setShowAvailableWorkers(true);
+        setAssignedWorkers(data);
+        setShowAssignedWorkers(true);
         scrollViewRef.current?.scrollToEnd({ animated: true });
       } else {
         const errorData = await response.json();
-        Alert.alert('Error', errorData.message || 'No workers found for this shift and date.');
+        Alert.alert('Error', errorData.message || 'Failed to fetch assigned workers.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to fetch workers.');
+      Alert.alert('Error', 'Failed to fetch assigned workers.');
     } finally {
       setSearchLoading(false);
     }
@@ -197,17 +193,17 @@ export default function JobDetails() {
               <Text style={styles.workersRequired}>Workers Required: {job.workersRequired}</Text>
               <Text style={styles.userCode}>User  Code: <Text style={styles.boldText}>{job.userCode}</Text></Text>
               <Text style={styles.jobDescription}>Description: <Text style={styles.boldText}>{job.description}</Text></Text>
-              <TouchableOpacity onPress={handleSearchWorkers} style={styles.searchButton}>
-                <Text style={styles.searchButtonText}>Find Available Workers</Text>
+              <TouchableOpacity onPress={fetchAssignedWorkers} style={styles.searchButton}>
+                <Text style={styles.searchButtonText}>View Assigned Workers</Text>
               </TouchableOpacity>
               {searchLoading && <ActivityIndicator size="small" color="#f3ae0a" />}
-              {showAvailableWorkers && (
+              {showAssignedWorkers && (
                 <View style={styles.workersList}>
-                  <Text style={styles.workersListTitle}>Available Workers:</Text>
-                  {availableWorkers.length === 0 ? (
-                    <Text style={styles.noWorkersText}>No workers available for this date and shift.</Text>
+                  <Text style={styles.workersListTitle}>Assigned Workers:</Text>
+                  {assignedWorkers.length === 0 ? (
+                    <Text style={styles.noWorkersText}>No workers assigned yet.</Text>
                   ) : (
-                    availableWorkers.map(worker => (
+                    assignedWorkers.map(worker => (
                       <View key={worker._id} style={styles.workerCard}>
                         <Ionicons name="person-circle" size={30} color="#f3ae0a" />
                         <Text style={styles.workerName}>{worker.name}</Text>
@@ -223,7 +219,7 @@ export default function JobDetails() {
     </>
   );
 }
-
+   
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,

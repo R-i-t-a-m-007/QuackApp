@@ -166,17 +166,30 @@ export default function MyAccount() {
       const response = await fetch(uri);
       const blob = await response.blob();
 
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64data = reader.result;
+      // Generate a pre-signed URL and upload the image directly to S3
+      const presignedUrlResponse = await fetch(`https://api.thequackapp.com/api/s3/generate-presigned-url?filename=${userDetails._id}-profile-image.jpg&filetype=image/jpeg`);
+      const presignedUrlData = await presignedUrlResponse.json();
+      
+      const uploadUrl = presignedUrlData.uploadURL;
+      
+      // Upload to S3
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/jpeg',
+        },
+        body: blob,
+      });
 
+      if (uploadResponse.ok) {
+        const imageUrl = presignedUrlData.url; // This is the URL of the uploaded image
+        // Save image URL to the user's profile
         const res = await fetch(`https://api.thequackapp.com/api/auth/${userDetails._id}/upload-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ image: base64data }),
+          body: JSON.stringify({ image: imageUrl }),
         });
 
         const data = await res.json();
@@ -187,7 +200,9 @@ export default function MyAccount() {
           console.error('Error uploading image:', data.message);
           Alert.alert('Error', data.message || 'Failed to upload image.');
         }
-      };
+      } else {
+        throw new Error('S3 upload failed');
+      }
     } catch (error) {
       console.error('Upload error:', error);
       Alert.alert('Error', 'An error occurred while uploading the image.');

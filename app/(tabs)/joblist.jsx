@@ -74,18 +74,46 @@ export default function JobList() {
   };
 
   const handleBackPress = async () => {
-    await fetchUserInfo(); // Fetch user info before navigating
-    if (userDetails) {
-      const userPackage = userDetails.package; // Get the package from user details
-      if (userPackage === 'Pro') {
-        router.push('/prouserdash'); // Redirect to Pro User Dashboard
-      } else if (userPackage === 'Basic') {
-        router.push('/basicuserdash'); // Redirect to Basic User Dashboard
+    try {
+      // First try fetching user info
+      const userResponse = await fetch('https://api.thequackapp.com/api/auth/me', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const userData = await userResponse.json();
+  
+      if (userResponse.ok && userData.user) {
+        const userPackage = userData.user.package;
+        if (userPackage === 'Pro') {
+          router.push('/prouserdash');
+        } else if (userPackage === 'Basic') {
+          router.push('/basicuserdash');
+        } else {
+          router.push('/basicuserdash'); // fallback
+        }
+        return;
       }
-    } else {
-      router.push('/companydash'); // Fallback if user details are not available
+  
+      // If user info is not available, try fetching company info
+      const companyResponse = await fetch('https://api.thequackapp.com/api/companies/company', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const companyData = await companyResponse.json();
+  
+      if (companyResponse.ok && companyData.company) {
+        router.push('/companydash');
+        return;
+      }
+  
+      // If neither user nor company info is available, fallback
+      router.push('/');
+    } catch (error) {
+      console.error('Error handling back press:', error);
+      router.push('/');
     }
   };
+  
 
   useEffect(() => {
     fetchUserInfo(); // Fetch user info when the component mounts

@@ -19,8 +19,7 @@
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app requires access to your photo library to upload images.",
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "useNextNotificationsApi": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,7 +31,8 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "NOTIFICATIONS"
-      ]
+      ],
+      "package": "com.ritam2024.QuackApp"
     },
     "web": {
       "bundler": "metro",

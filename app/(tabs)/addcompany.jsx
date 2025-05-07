@@ -18,6 +18,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Country, City } from 'country-state-city';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
+
 
 export default function AddCompany() {
   const router = useRouter();
@@ -30,6 +32,7 @@ export default function AddCompany() {
     password: '',
     country: '',
     city: '',
+    expoPushToken: '',
   });
   const [errors, setErrors] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
@@ -64,50 +67,80 @@ export default function AddCompany() {
 
   const validateForm = () => {
     const newErrors = {};
-
+  
     Object.keys(formData).forEach((field) => {
+      if (field === 'expoPushToken') return;
       if (!formData[field]) {
         newErrors[field] = 'This field is required';
       }
     });
-
+  
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (formData.email && !emailPattern.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
-
+  
     const phonePattern = /^[0-9]+$/;
     if (formData.phone && !phonePattern.test(formData.phone)) {
       newErrors.phone = 'Phone number must contain only numbers';
     }
-
+  
     if (formData.password && formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
-
+  
     setErrors(newErrors);
-
+  
     return Object.keys(newErrors).length === 0;
   };
+  
 
   const handleConfirm = async () => {
-    if (!validateForm()) return;
 
-    setLoading(true);
+  const isValid = validateForm();
+
+  if (!isValid) return;
 
     try {
+      // Get the push token just before submitting
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+  
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+  
+      if (finalStatus !== 'granted') {
+        throw new Error('Permission for push notifications not granted');
+      }
+  
+      const tokenData = await Notifications.getExpoPushTokenAsync();
+      console.log("Push token:", tokenData.data);
+      const expoPushToken = tokenData.data;
+  
+      // Add the token to the formData
+      const finalData = {
+        ...formData,
+        expoPushToken,
+      };
+      console.log(finalData);
+      
+  
       const response = await fetch('https://api.thequackapp.com/api/companies/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(finalData),
       });
 
       const data = await response.json();
-
+      console.log("Logging the data : ", data);
+  
       if (response.ok) {
         setIsSuccess(true);
         setModalMessage(data.message);
-        setFormData({
+        setFormData((prev) => ({
+          ...prev,
           name: '',
           email: '',
           phone: '',
@@ -116,23 +149,25 @@ export default function AddCompany() {
           password: '',
           country: '',
           city: '',
-        });
+        }));
         router.push("/companylist");
       } else {
-        setIsSuccess(false); // Error case
+        setIsSuccess(false);
         setModalMessage(data.message || 'Failed to add company');
       }
-
+  
       setModalVisible(true);
     } catch (error) {
       console.error(error);
-      setIsSuccess(false); // Error case
-      setModalMessage('Something went wrong. Please try again later.');
+      setIsSuccess(false);
+      setModalMessage(error.message || 'Something went wrong.');
       setModalVisible(true);
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
+  
+  
 
   const handleCountrySelect = (country) => {
     setFormData({ ...formData, country: country.name, city: '' });
@@ -173,7 +208,7 @@ export default function AddCompany() {
               <TouchableOpacity onPress={() => router.push('/prouserdash')}>
                 <Ionicons name="arrow-back" size={30} color="white" />
               </TouchableOpacity>
-              <Text style={styles.navTitle}>Add Company</Text>
+              <Text style={styles.navTitle}>Add Department/Location</Text>
               <Ionicons name="notifications" size={24} color="white" />
             </LinearGradient>
 
@@ -183,7 +218,7 @@ export default function AddCompany() {
               showsVerticalScrollIndicator={false}
             >
               {[
-                { name: 'name', placeholder: 'name' },
+                { name: 'name', placeholder: 'Name' },
                 { name: 'email', placeholder: 'Email' },
                 { name: 'password', placeholder: 'Password' },
                 { name: 'phone', placeholder: 'Phone Number', keyboardType: 'phone-pad' },

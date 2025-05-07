@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   myMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#f3ae0a',
+    backgroundColor: 'white',
   },
   otherMessage: {
     alignSelf: 'flex-start',
