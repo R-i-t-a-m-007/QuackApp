@@ -26,7 +26,7 @@ export default function JobList() {
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://api.thequackapp.com/api/jobs/company', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/jobs/company', {
         method: 'GET',
         credentials: 'include',
       });
@@ -56,7 +56,7 @@ export default function JobList() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -76,7 +76,7 @@ export default function JobList() {
   const handleBackPress = async () => {
     try {
       // First try fetching user info
-      const userResponse = await fetch('https://api.thequackapp.com/api/auth/me', {
+      const userResponse = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -95,7 +95,7 @@ export default function JobList() {
       }
   
       // If user info is not available, try fetching company info
-      const companyResponse = await fetch('https://api.thequackapp.com/api/companies/company', {
+      const companyResponse = await fetch('https://quackapp-backend-mprx.onrender.com/api/companies/company', {
         method: 'GET',
         credentials: 'include',
       });

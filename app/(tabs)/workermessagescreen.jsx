@@ -15,7 +15,7 @@ export default function WorkerMessagesScreen() {
     try {
       setLoading(true);
       setWorker(null); // Reset worker state to force re-fetching
-      const response = await fetch('https://api.thequackapp.com/api/workers/me', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -37,7 +37,7 @@ export default function WorkerMessagesScreen() {
   const fetchMessages = async (userCode) => {
     if (!userCode) return;
     try {
-      const response = await fetch(`https://api.thequackapp.com/api/workers/${userCode}/messages`, {
+      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/workers/${userCode}/messages`, {
         method: 'GET',
         credentials: 'include',
       });

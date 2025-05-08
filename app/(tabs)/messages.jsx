@@ -21,7 +21,7 @@ export default function MessagesScreen() {
   // Fetch user info
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -38,7 +38,7 @@ export default function MessagesScreen() {
 
   const fetchCompanyInfo = async () => {
     try {
-      const response = await fetch('https://api.thequackapp.com/api/companies/company', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/companies/company', {
         method: 'GET',
         credentials: 'include',
       });
@@ -98,7 +98,7 @@ export default function MessagesScreen() {
 
     if (!senderCode) return;
     try {
-      const response = await fetch(`https://api.thequackapp.com/api/workers/${senderCode}/messages`, {
+      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/workers/${senderCode}/messages`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -122,7 +122,7 @@ export default function MessagesScreen() {
     }
 
     try {
-      const response = await fetch(`https://api.thequackapp.com/api/workers/send-message`, {
+      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/workers/send-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

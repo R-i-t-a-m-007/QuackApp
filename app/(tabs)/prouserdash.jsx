@@ -12,7 +12,7 @@ export default function IndividualDash() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });

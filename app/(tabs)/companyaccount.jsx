@@ -28,7 +28,7 @@ export default function CompanyAccount() {
   const fetchCompanyInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://api.thequackapp.com/api/companies/company', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/companies/company', {
         method: 'GET',
         credentials: 'include',
       });
@@ -65,7 +65,7 @@ export default function CompanyAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              await fetch('https://api.thequackapp.com/api/companies/logout', {
+              await fetch('https://quackapp-backend-mprx.onrender.com/api/companies/logout', {
                 method: 'POST',
                 credentials: 'include',
               });
@@ -92,7 +92,7 @@ export default function CompanyAccount() {
       reader.onloadend = async () => {
         const base64data = reader.result;
 
-        const res = await fetch(`https://api.thequackapp.com/api/companies/${companyDetails._id}/upload-image`, {
+        const res = await fetch(`https://quackapp-backend-mprx.onrender.com/api/companies/${companyDetails._id}/upload-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

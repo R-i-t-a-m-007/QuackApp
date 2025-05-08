@@ -33,7 +33,7 @@ export default function JobDetails() {
   const fetchJobDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://api.thequackapp.com/api/jobs/${jobId}`, {
+      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/jobs/${jobId}`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -63,7 +63,7 @@ export default function JobDetails() {
     setSearchLoading(true);
     setShowAssignedWorkers(false);
     try {
-      const response = await fetch(`https://api.thequackapp.com/api/jobs/assigned-workers/${job._id}`, {
+      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/jobs/assigned-workers/${job._id}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -86,7 +86,7 @@ export default function JobDetails() {
 
   const handleDeleteJob = async () => {
     try {
-      const response = await fetch(`https://api.thequackapp.com/api/jobs/job/${jobToDelete}`, {
+      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/jobs/job/${jobToDelete}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

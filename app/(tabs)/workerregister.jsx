@@ -53,7 +53,7 @@ export default function WorkerRegistration() {
 
       const token = (await Notifications.getExpoPushTokenAsync()).data;
 
-      const response = await fetch('https://api.thequackapp.com/api/workers/add', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

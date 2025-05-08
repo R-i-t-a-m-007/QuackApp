@@ -49,7 +49,7 @@ export default function WorkerLogin() {
 
       const token = (await Notifications.getExpoPushTokenAsync()).data;
 
-      const response = await fetch('https://api.thequackapp.com/api/workers/login', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

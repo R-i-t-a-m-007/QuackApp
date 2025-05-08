@@ -33,7 +33,7 @@ export default function MyAccount() {
   const fetchUserInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -70,7 +70,7 @@ export default function MyAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              await fetch('https://api.thequackapp.com/api/auth/logout', {
+              await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include',
               });
@@ -98,7 +98,7 @@ export default function MyAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              const response = await fetch('https://api.thequackapp.com/api/stripe/cancel-subscription', {
+              const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/stripe/cancel-subscription', {
                 method: 'POST',
                 credentials: 'include',
               });
@@ -133,7 +133,7 @@ export default function MyAccount() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`https://api.thequackapp.com/api/auth/users/${userDetails._id}`, {
+              const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/auth/users/${userDetails._id}`, {
                 method: 'DELETE',
                 credentials: 'include',
               });
@@ -167,7 +167,7 @@ export default function MyAccount() {
       const blob = await response.blob();
 
       // Generate a pre-signed URL and upload the image directly to S3
-      const presignedUrlResponse = await fetch(`https://api.thequackapp.com/api/s3/generate-presigned-url?filename=${userDetails._id}-profile-image.jpg&filetype=image/jpeg`);
+      const presignedUrlResponse = await fetch(`https://quackapp-backend-mprx.onrender.com/api/s3/generate-presigned-url?filename=${userDetails._id}-profile-image.jpg&filetype=image/jpeg`);
       const presignedUrlData = await presignedUrlResponse.json();
       
       const uploadUrl = presignedUrlData.uploadURL;
@@ -184,7 +184,7 @@ export default function MyAccount() {
       if (uploadResponse.ok) {
         const imageUrl = presignedUrlData.url; // This is the URL of the uploaded image
         // Save image URL to the user's profile
-        const res = await fetch(`https://api.thequackapp.com/api/auth/${userDetails._id}/upload-image`, {
+        const res = await fetch(`https://quackapp-backend-mprx.onrender.com/api/auth/${userDetails._id}/upload-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

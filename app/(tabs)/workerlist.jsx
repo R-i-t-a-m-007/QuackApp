@@ -46,7 +46,7 @@ export default function WorkerList() {
   const fetchWorkers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://api.thequackapp.com/api/workers/approved', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/approved', {
         method: 'GET',
         credentials: 'include',
       });
@@ -67,7 +67,7 @@ export default function WorkerList() {
   const fetchUserInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -102,7 +102,7 @@ export default function WorkerList() {
         joiningDate: workerJoiningDate,
       };
 
-      const response = await fetch(`https://api.thequackapp.com/api/workers/${selectedWorker._id}`, {
+      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/workers/${selectedWorker._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ export default function WorkerList() {
 
   const deleteWorker = async (workerId) => {
     try {
-      const response = await fetch(` https://api.thequackapp.com/api/workers/${workerId}`, {
+      const response = await fetch(` https://quackapp-backend-mprx.onrender.com/api/workers/${workerId}`, {
         method: 'DELETE',
       });
 

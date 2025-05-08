@@ -42,7 +42,7 @@ export default function Login() {
         const workerToken = await AsyncStorage.getItem('workerToken');
 
         if (userToken) {
-          const response = await fetch('https://api.thequackapp.com/api/auth/me', {
+          const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${userToken}`,
@@ -90,7 +90,7 @@ export default function Login() {
 
       const token = (await Notifications.getExpoPushTokenAsync()).data;
 
-      const response = await fetch('https://api.thequackapp.com/api/auth/login', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, expoPushToken: token }), // Only username and password
@@ -101,7 +101,7 @@ export default function Login() {
       if (response.ok) {
         // Check the user's package after successful login
         await AsyncStorage.setItem('authToken', data.token); // Save token
-        const userResponse = await fetch('https://api.thequackapp.com/api/auth/me', {
+        const userResponse = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${data.token}` }, // Send token
         });
@@ -167,7 +167,7 @@ export default function Login() {
   
   const handleResetPassword = async () => {
     try {
-      const response = await fetch('https://api.thequackapp.com/api/auth/reset-password', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp, newPassword }),

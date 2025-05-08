@@ -30,7 +30,7 @@ export default function WorkerAccount() {
   const fetchWorkerInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://api.thequackapp.com/api/workers/me', {
+      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -68,7 +68,7 @@ export default function WorkerAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              await fetch('https://api.thequackapp.com/api/workers/logout', {
+              await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/logout', {
                 method: 'POST',
                 credentials: 'include',
               });
@@ -99,7 +99,7 @@ export default function WorkerAccount() {
           onPress: async () => {
             try {
               const response = await fetch(
-                `https://api.thequackapp.com/api/workers/workers/${workerDetails._id}`,
+                `https://quackapp-backend-mprx.onrender.com/api/workers/workers/${workerDetails._id}`,
                 {
                   method: 'DELETE',
                   credentials: 'include',
@@ -137,7 +137,7 @@ export default function WorkerAccount() {
       reader.onloadend = async () => {
         const base64data = reader.result;
 
-        const res = await fetch(`https://api.thequackapp.com/api/workers/${workerDetails._id}/upload-image`, {
+        const res = await fetch(`https://quackapp-backend-mprx.onrender.com/api/workers/${workerDetails._id}/upload-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
