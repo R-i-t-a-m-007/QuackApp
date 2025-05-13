@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Notifications from 'expo-notifications';
 
 const { height, width } = Dimensions.get('window');
 
@@ -38,11 +39,14 @@ export default function CustomScreen() {
       setShowErrorModal(true);
       return;
     }
-
-    setIsLoading(true); // Start loading state
-
+  
+    setIsLoading(true);
+  
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/companies/login', {
+      // ✅ Get the Expo push token
+      const token = (await Notifications.getExpoPushTokenAsync()).data;
+  
+      const response = await fetch('https://api.thequackapp.com/api/companies/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,16 +54,15 @@ export default function CustomScreen() {
         body: JSON.stringify({
           compcode,
           password,
+          expoPushToken: token, // ✅ Send to backend
         }),
       });
-
+  
       const data = await response.json();
-
+  
       if (response.ok) {
-        // Successful login, navigate to the dashboard or relevant screen
         router.push('/companydash');
       } else {
-        // Show error modal if login fails
         setErrorMessage(data.message || 'An error occurred. Please try again.');
         setShowErrorModal(true);
       }
@@ -68,9 +71,10 @@ export default function CustomScreen() {
       setErrorMessage('Server error. Please try again later.');
       setShowErrorModal(true);
     } finally {
-      setIsLoading(false); // Stop loading state
+      setIsLoading(false);
     }
   };
+  
 
   return (
     <>

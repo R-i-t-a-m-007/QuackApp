@@ -41,7 +41,7 @@ export default function CompanyList() {
   const fetchCompanies = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/companies/list');
+      const response = await fetch('https://api.thequackapp.com/api/companies/list');
       const data = await response.json();
       if (response.ok) {
         setCompanies(data);

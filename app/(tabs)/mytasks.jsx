@@ -34,7 +34,7 @@ const MyTasksScreen = () => {
   const fetchMyTasks = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/jobs/mine', {
+      const response = await fetch('https://api.thequackapp.com/api/jobs/mine', {
         method: 'GET',
         credentials: 'include',
       });
@@ -113,7 +113,7 @@ const MyTasksScreen = () => {
     }
   
     try {
-      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/jobs/remove-accepted/${jobId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/jobs/remove-accepted/${jobId}`, {
         method: "PUT",
         credentials: "include",
       });

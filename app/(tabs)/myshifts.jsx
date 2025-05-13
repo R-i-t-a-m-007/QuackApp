@@ -15,7 +15,7 @@ export default function MyShiftsScreen() {
   useEffect(() => {
     const fetchWorker = async () => {
       try {
-        const response = await fetch("https://quackapp-backend-mprx.onrender.com/api/workers/me"); // Adjust API if needed
+        const response = await fetch("https://api.thequackapp.com/api/workers/me"); // Adjust API if needed
         if (response.ok) {
           const data = await response.json();
           setWorkerId(data._id); // Save worker ID
@@ -32,7 +32,7 @@ export default function MyShiftsScreen() {
   const fetchShiftsAndJobs = async () => {
     try {
       // Fetch shifts for the worker
-      const shiftsResponse = await fetch("https://quackapp-backend-mprx.onrender.com/api/workers/my-shifts", {
+      const shiftsResponse = await fetch("https://api.thequackapp.com/api/workers/my-shifts", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -47,7 +47,7 @@ export default function MyShiftsScreen() {
       }
 
       // Fetch jobs where the worker is involved
-      const jobsResponse = await fetch("https://quackapp-backend-mprx.onrender.com/api/jobs/mine", {
+      const jobsResponse = await fetch("https://api.thequackapp.com/api/jobs/mine", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -110,7 +110,7 @@ export default function MyShiftsScreen() {
             text: "Yes",
             onPress: async () => {
               try {
-                const response = await fetch("https://quackapp-backend-mprx.onrender.com/api/workers/cancel-shift", {
+                const response = await fetch("https://api.thequackapp.com/api/workers/cancel-shift", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({

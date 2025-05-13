@@ -33,7 +33,7 @@ export default function WorkerRequests() {
   const fetchWorkers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/pending', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/pending', {
         method: 'GET',
         credentials: 'include',
       });
@@ -54,7 +54,7 @@ export default function WorkerRequests() {
   const fetchUserInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -82,7 +82,7 @@ export default function WorkerRequests() {
 
   const approveWorker = async (workerId) => {
     try {
-      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/workers/approve/${workerId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/workers/approve/${workerId}`, {
         method: 'PUT',
         credentials: 'include',
       });
@@ -101,7 +101,7 @@ export default function WorkerRequests() {
 
   const deleteWorker = async (workerId) => {
     try {
-      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/workers/decline/${workerId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/workers/decline/${workerId}`, {
         method: 'DELETE',
       });
 

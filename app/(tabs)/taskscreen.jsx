@@ -35,7 +35,7 @@ const TasksScreen = () => {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/jobs/worker', {
+      const response = await fetch('https://api.thequackapp.com/api/jobs/worker', {
         method: 'GET',
         credentials: 'include',
       });
@@ -96,7 +96,7 @@ const TasksScreen = () => {
     }
   
     try {
-      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/jobs/accept/${jobId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/jobs/accept/${jobId}`, {
         method: 'PUT',
         credentials: 'include',
       });
@@ -119,7 +119,7 @@ const TasksScreen = () => {
 
   const handleDeclineJob = async (jobId) => {
     try {
-      const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/jobs/decline/${jobId}`, {
+      const response = await fetch(`https://api.thequackapp.com/api/jobs/decline/${jobId}`, {
         method: 'POST',
         credentials: 'include',
       });

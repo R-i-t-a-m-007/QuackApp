@@ -65,7 +65,7 @@ const PackageScreen = () => {
       setLoading(true);
 
       // Step 1: Get Customer ID
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/get-customer-id', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/get-customer-id', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -78,7 +78,7 @@ const PackageScreen = () => {
       
       // Step 2: Create Subscription
       const subscriptionResponse = await fetch(
-        'https://quackapp-backend-mprx.onrender.com/api/stripe/create-subscription',
+        'https://api.thequackapp.com/api/stripe/create-subscription',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -139,7 +139,7 @@ const PackageScreen = () => {
     const packageName = selectedPackage === 1 ? 'Basic' : 'Pro';
 
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/store-package', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/store-package', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ packageName }),

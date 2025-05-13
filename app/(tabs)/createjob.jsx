@@ -51,7 +51,7 @@ export default function CreateJob() {
 
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/jobs/create', {
+      const response = await fetch('https://api.thequackapp.com/api/jobs/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ export default function CreateJob() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });

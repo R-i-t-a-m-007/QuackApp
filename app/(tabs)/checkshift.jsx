@@ -51,7 +51,7 @@ export default function WorkerAvailability() {
 
 
       const response = await fetch(
-        `https://quackapp-backend-mprx.onrender.com/api/workers/shift-date?date=${formattedDate}&shift=${selectedShift}`,
+        `https://api.thequackapp.com/api/workers/shift-date?date=${formattedDate}&shift=${selectedShift}`,
         { method: 'GET', headers: { 'Content-Type': 'application/json' } }
       );
 
@@ -81,7 +81,7 @@ export default function WorkerAvailability() {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });

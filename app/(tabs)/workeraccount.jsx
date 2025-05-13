@@ -17,6 +17,8 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImageManipulator from 'expo-image-manipulator';
+
 
 
 export default function WorkerAccount() {
@@ -25,12 +27,13 @@ export default function WorkerAccount() {
   const [workerDetails, setWorkerDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [imageLoading, setImageLoading] = useState(false); // For image loading
 
   // Fetch worker details
   const fetchWorkerInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/me', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -68,7 +71,7 @@ export default function WorkerAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/logout', {
+              await fetch('https://api.thequackapp.com/api/workers/logout', {
                 method: 'POST',
                 credentials: 'include',
               });
@@ -99,7 +102,7 @@ export default function WorkerAccount() {
           onPress: async () => {
             try {
               const response = await fetch(
-                `https://quackapp-backend-mprx.onrender.com/api/workers/workers/${workerDetails._id}`,
+                `https://api.thequackapp.com/api/workers/workers/${workerDetails._id}`,
                 {
                   method: 'DELETE',
                   credentials: 'include',
@@ -129,20 +132,21 @@ export default function WorkerAccount() {
   // Function to upload image
   const uploadImage = async (uri) => {
     try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
 
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64data = reader.result;
+      setImageLoading(true);
 
-        const res = await fetch(`https://quackapp-backend-mprx.onrender.com/api/workers/${workerDetails._id}/upload-image`, {
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 800 } }], // Resize to 800px wide (adjust as needed)
+        { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
+
+        const res = await fetch(`https://api.thequackapp.com/api/workers/${workerDetails._id}/upload-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ image: base64data }),
+          body: JSON.stringify({ image: `data:image/jpeg;base64,${manipulatedImage.base64}` }),
         });
 
         const data = await res.json();
@@ -153,10 +157,12 @@ export default function WorkerAccount() {
           console.error('Error uploading image:', data.message);
           Alert.alert('Error', data.message || 'Failed to upload image.');
         }
-      };
     } catch (error) {
       console.error('Upload error:', error);
       Alert.alert('Error', 'An error occurred while uploading the image.');
+    }
+    finally {
+      setImageLoading(false);
     }
   };
 
@@ -169,7 +175,7 @@ export default function WorkerAccount() {
         aspect: [4, 3],
         quality: 1,
       });
-
+  
       if (!result.canceled && result.assets.length > 0) {
         const selectedUri = result.assets[0].uri;
         setSelectedImage(selectedUri); // Set the selected image URI
@@ -180,6 +186,7 @@ export default function WorkerAccount() {
       Alert.alert('Error', 'An error occurred while selecting the image.');
     }
   };
+  
 
   return (
     <>
@@ -213,16 +220,26 @@ export default function WorkerAccount() {
                 <View style={styles.profileSection}>
                   <View style={styles.profileImageContainer}>
                     <LinearGradient colors={['#f3ae0a', '#f3830a']} style={styles.profileImageGradient}>
-                      {selectedImage ? (
+                    {imageLoading ? (
+                        <ActivityIndicator size="large" color="white" />
+                      ) : selectedImage ? (
                         <Image source={{ uri: selectedImage }} style={styles.profileImage} />
                       ) : workerDetails.image ? (
                         <Image source={{ uri: workerDetails.image }} style={styles.profileImage} />
                       ) : (
                         <Ionicons name="person" size={70} color="white" />
                       )}
-                      <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
-                        <Ionicons name="image-outline" size={24} color="white" />
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.editIcon}
+                          onPress={pickImage}
+                          disabled={imageLoading}
+                        >
+                          <Ionicons
+                            name={imageLoading ? 'hourglass' : 'image-outline'}
+                            size={24}
+                            color="white"
+                          />
+                        </TouchableOpacity>
                     </LinearGradient>
                   </View>
                   <Text style={styles.greeting}>Hi, {workerDetails.name || 'Worker'}</Text>

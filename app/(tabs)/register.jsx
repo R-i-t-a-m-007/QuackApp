@@ -92,7 +92,7 @@ export default function RegisterPage() {
       const token = (await Notifications.getExpoPushTokenAsync()).data;
       dataToSend.expoPushToken = token;
       
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/register', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend),

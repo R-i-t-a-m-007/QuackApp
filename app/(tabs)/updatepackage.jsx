@@ -56,7 +56,7 @@ const UpdatePackageScreen = () => {
   const initializePaymentSheet = async (priceId) => {
     setLoading(true);
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/stripe/create-checkout-session', {
+      const response = await fetch('https://api.thequackapp.com/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ const UpdatePackageScreen = () => {
     const packageName = 'Pro'; // Only allow Pro package
 
     try {
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/updatepackage', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/updatepackage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

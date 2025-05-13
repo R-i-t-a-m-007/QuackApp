@@ -13,7 +13,7 @@ export default function WorkerDash() {
   const fetchWorkerInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/workers/me', {
+      const response = await fetch('https://api.thequackapp.com/api/workers/me', {
         method: 'GET',
         credentials: 'include',
       });

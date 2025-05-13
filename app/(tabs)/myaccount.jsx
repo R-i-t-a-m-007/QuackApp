@@ -17,6 +17,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 
 export default function MyAccount() {
@@ -33,7 +34,7 @@ export default function MyAccount() {
   const fetchUserInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/me', {
+      const response = await fetch('https://api.thequackapp.com/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -70,7 +71,7 @@ export default function MyAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              await fetch('https://quackapp-backend-mprx.onrender.com/api/auth/logout', {
+              await fetch('https://api.thequackapp.com/api/auth/logout', {
                 method: 'POST',
                 credentials: 'include',
               });
@@ -98,7 +99,7 @@ export default function MyAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/stripe/cancel-subscription', {
+              const response = await fetch('https://api.thequackapp.com/api/stripe/cancel-subscription', {
                 method: 'POST',
                 credentials: 'include',
               });
@@ -133,7 +134,7 @@ export default function MyAccount() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`https://quackapp-backend-mprx.onrender.com/api/auth/users/${userDetails._id}`, {
+              const response = await fetch(`https://api.thequackapp.com/api/auth/users/${userDetails._id}`, {
                 method: 'DELETE',
                 credentials: 'include',
               });
@@ -163,52 +164,37 @@ export default function MyAccount() {
   const uploadImage = async (uri) => {
     try {
       setImageLoading(true);
-      const response = await fetch(uri);
-      const blob = await response.blob();
-
-      // Generate a pre-signed URL and upload the image directly to S3
-      const presignedUrlResponse = await fetch(`https://quackapp-backend-mprx.onrender.com/api/s3/generate-presigned-url?filename=${userDetails._id}-profile-image.jpg&filetype=image/jpeg`);
-      const presignedUrlData = await presignedUrlResponse.json();
-      
-      const uploadUrl = presignedUrlData.uploadURL;
-      
-      // Upload to S3
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
+  
+      // 1. Compress image to 50% quality and resize to 800px width
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 800 } }], // Resize to 800px wide (adjust as needed)
+        { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
+  
+      // 2. Send the base64 string to backend
+      const res = await fetch(`https://api.thequackapp.com/api/auth/${userDetails._id}/upload-image`, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'image/jpeg',
+          'Content-Type': 'application/json',
         },
-        body: blob,
+        body: JSON.stringify({ image: `data:image/jpeg;base64,${manipulatedImage.base64}` }),
       });
-
-      if (uploadResponse.ok) {
-        const imageUrl = presignedUrlData.url; // This is the URL of the uploaded image
-        // Save image URL to the user's profile
-        const res = await fetch(`https://quackapp-backend-mprx.onrender.com/api/auth/${userDetails._id}/upload-image`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ image: imageUrl }),
-        });
-
-        const data = await res.json();
-        if (res.ok) {
-          Alert.alert('Success', 'Image uploaded successfully!');
-          fetchUserInfo(); // Refresh worker info to get the updated image
-        } else {
-          console.error('Error uploading image:', data.message);
-          Alert.alert('Error', data.message || 'Failed to upload image.');
-        }
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        Alert.alert('Success', 'Image uploaded successfully!');
+        fetchUserInfo();
       } else {
-        throw new Error('S3 upload failed');
+        console.error('Upload failed:', data.message);
+        Alert.alert('Error', data.message || 'Upload failed.');
       }
     } catch (error) {
       console.error('Upload error:', error);
       Alert.alert('Error', 'An error occurred while uploading the image.');
-    }
-    finally {
-      setImageLoading(false); // End loading
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -243,9 +229,6 @@ export default function MyAccount() {
     }
   };
 
-  const handleUpgrade = () => {
-    router.push('/updatepackage'); // Redirect to the update package screen
-  };
 
   return (
     <>
@@ -297,9 +280,17 @@ export default function MyAccount() {
                       ) : (
                         <Ionicons name="person" size={70} color="white" />
                       )}
-                      <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
-                        <Ionicons name="image-outline" size={24} color="white" />
-                      </TouchableOpacity>
+                      <TouchableOpacity
+                          style={styles.editIcon}
+                          onPress={pickImage}
+                          disabled={imageLoading}
+                        >
+                          <Ionicons
+                            name={imageLoading ? 'hourglass' : 'image-outline'}
+                            size={24}
+                            color="white"
+                          />
+                        </TouchableOpacity>
                     </LinearGradient>
                   </View>
                   <Text style={styles.greeting}>Hi, {userDetails.username || ' User '}</Text>
@@ -315,7 +306,6 @@ export default function MyAccount() {
                     label="Package" 
                     value={userDetails.package || 'N/A'} 
                     icon="home" 
-                    onUpgrade={userDetails.package === 'Basic' ? handleUpgrade : null} 
                   />
                   <DetailCard 
                     label="Subscription" 

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 export default function CompanyAccount() {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -23,12 +24,13 @@ export default function CompanyAccount() {
   const [companyDetails, setCompanyDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [imageLoading, setImageLoading] = useState(false); // For image loading
 
   // Fetch company details
   const fetchCompanyInfo = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://quackapp-backend-mprx.onrender.com/api/companies/company', {
+      const response = await fetch('https://api.thequackapp.com/api/companies/company', {
         method: 'GET',
         credentials: 'include',
       });
@@ -65,7 +67,7 @@ export default function CompanyAccount() {
           text: 'Yes',
           onPress: async () => {
             try {
-              await fetch('https://quackapp-backend-mprx.onrender.com/api/companies/logout', {
+              await fetch('https://api.thequackapp.com/api/companies/logout', {
                 method: 'POST',
                 credentials: 'include',
               });
@@ -84,23 +86,24 @@ export default function CompanyAccount() {
   // Function to upload image
   const uploadImage = async (uri) => {
     try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      setImageLoading(true);
 
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        const base64data = reader.result;
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 800 } }], // Resize to 800px wide (adjust as needed)
+        { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
 
-        const res = await fetch(`https://quackapp-backend-mprx.onrender.com/api/companies/${companyDetails._id}/upload-image`, {
+        const res = await fetch(`https://api.thequackapp.com/api/companies/${companyDetails._id}/upload-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ image: base64data }),
+          body: JSON.stringify({ image: `data:image/jpeg;base64,${manipulatedImage.base64}` }),
         });
 
         const data = await res.json();
+
         if (res.ok) {
           Alert.alert('Success', 'Image uploaded successfully!');
           fetchCompanyInfo(); // Refresh worker info to get the updated image
@@ -108,10 +111,12 @@ export default function CompanyAccount() {
           console.error('Error uploading image:', data.message);
           Alert.alert('Error', data.message || 'Failed to upload image.');
         }
-      };
     } catch (error) {
       console.error('Upload error:', error);
       Alert.alert('Error', 'An error occurred while uploading the image.');
+    }
+    finally {
+      setImageLoading(false);
     }
   };
 
@@ -178,14 +183,24 @@ export default function CompanyAccount() {
                       colors={['#f3ae0a', '#f3830a']}
                       style={styles.profileImageGradient}
                     >
-                      {companyDetails.image ? (
-                        <Image source={{ uri: companyDetails.image }} style={styles.profileImage} />
-                      ) : (
-                        <Ionicons name="business" size={70} color="white" />
-                      )}
-                      <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
-                        <Ionicons name="image-outline" size={24} color="white" />
-                      </TouchableOpacity>
+                      {imageLoading ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : companyDetails.image ? (
+                          <Image source={{ uri: companyDetails.image }} style={styles.profileImage} />
+                        ) : (
+                          <Ionicons name="business" size={70} color="white" />
+                        )}
+                      <TouchableOpacity
+                          style={styles.editIcon}
+                          onPress={pickImage}
+                          disabled={imageLoading}
+                        >
+                          <Ionicons
+                            name={imageLoading ? 'hourglass' : 'image-outline'}
+                            size={24}
+                            color="white"
+                          />
+                        </TouchableOpacity>
                     </LinearGradient>
                   </View>
                   <Text style={styles.greeting}>Hi, {companyDetails.name}</Text>
