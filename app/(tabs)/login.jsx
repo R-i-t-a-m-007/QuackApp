@@ -84,44 +84,61 @@ export default function Login() {
   }, []);
 
   const handleLogin = async () => {
-    setLoading(true); // Start loading
-
+    setLoading(true);
+  
     try {
-
       const token = (await Notifications.getExpoPushTokenAsync()).data;
-
+  
       const response = await fetch('https://api.thequackapp.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, expoPushToken: token }), // Only username and password
+        body: JSON.stringify({ username, password, expoPushToken: token }),
       });
       const data = await response.json();
-      
-
+  
       if (response.ok) {
-        // Check the user's package after successful login
-        await AsyncStorage.setItem('authToken', data.token); // Save token
+        await AsyncStorage.setItem('authToken', data.token);
+  
         const userResponse = await fetch('https://api.thequackapp.com/api/auth/me', {
           method: 'GET',
-          headers: { 'Authorization': `Bearer ${data.token}` }, // Send token
+          headers: { Authorization: `Bearer ${data.token}` },
         });
-
+  
         if (userResponse.ok) {
-          const userData = await userResponse.json();          
-          const userPackage = userData.user.package; // Assuming the package is in the user object
-          await AsyncStorage.setItem('userPackage', userData.user.package); // Save package
-
-          // Redirect based on the package
+          const userData = await userResponse.json();
+          const userPackage = userData.user.package;
+          const subscriptionEndDate = userData.user.subscriptionEndDate
+            ? new Date(userData.user.subscriptionEndDate)
+            : null;
+  
+          const now = new Date();
+  
+          if (subscriptionEndDate && now > subscriptionEndDate) {
+            // Subscription has expired
+            Alert.alert(
+              'Subscription Expired',
+              'Your subscription has expired. Would you like to subscribe again?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Subscribe Again', onPress: () => router.push('/packagescreen') },
+              ]
+            );
+            return;
+          }
+  
+          // Subscription is valid or no end date set (treat as active)
+          await AsyncStorage.setItem('userPackage', userPackage);
+  
           if (userPackage === 'Pro') {
-            router.push('/prouserdash'); // Redirect to Individual Dashboard
+            router.push('/prouserdash');
           } else if (userPackage === 'Basic') {
-            router.push('/basicuserdash'); // Redirect to Company Dashboard
+            router.push('/basicuserdash');
           } else {
-            Alert.alert('Error', 'User  package is not defined.');
+            Alert.alert('Error', 'User package is not recognized.');
           }
         } else {
           const errorData = await userResponse.json();
-          console.log('User fetch failed:', errorData);
+          console.log('Failed to fetch user data:', errorData);
           Alert.alert('Error', 'Failed to fetch user data.');
         }
       } else {
@@ -132,9 +149,12 @@ export default function Login() {
       console.error('Login Error:', error);
       Alert.alert('Error', 'Something went wrong. Please try again later.');
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
+  
+  
+  
 
   useEffect(() => {
     const checkLoginStatus = async () => {

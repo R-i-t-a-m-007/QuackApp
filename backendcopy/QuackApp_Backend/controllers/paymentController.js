@@ -7,8 +7,8 @@ export const createPaymentIntent = async (req, res) => {
 
   // Define your packages (you can extend this logic to be dynamic if needed)
   const packages = [
-    { id: 1, title: 'Basic Version', price: 14.95 }, // Price in EUR
-    { id: 2, title: 'Premium Version', price: 29.95 },
+    { id: 1, title: 'Basic Package', price: 14.95 }, // Price in EUR
+    { id: 2, title: 'Premium Package', price: 29.95 },
   ];
 
   const selectedPackage = packages.find(pkg => pkg.id === selectedPackageId);

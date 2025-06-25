@@ -31,7 +31,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <StripeProvider publishableKey="pk_test_51QMRNe02CrK5yqCqYqkToVNNtUNhxjGtg8vEQQgQGy8Ca8RRtVinaKSvoVXrtcEHI3grdIZqg2tr0EpmPG2UxqBc00l0TowYoM">
+      <StripeProvider publishableKey="pk_live_51R4fcdCYDOMuFCfFqAhGZMbYDfByHhXukLT6KeGiujcEj6RwmH1MR8kZ2IqdrY78YZC9tCETsiBkduqDGQ0ApPbC009Cz0KAog">
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />

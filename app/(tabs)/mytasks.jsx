@@ -98,7 +98,7 @@ const MyTasksScreen = () => {
       "Accept and Read Terms",
       "Please read the terms and conditions before accepting.",
       [
-        { text: "Read Terms", onPress: async () => await WebBrowser.openBrowserAsync('https://quackapp-admin.netlify.app/terms-and-conditions') },
+        { text: "Read Terms", onPress: async () => await WebBrowser.openBrowserAsync('https://thequackapp.com/app/terms-and-conditions') },
         { text: "Accept", onPress: () => handleDelete(jobId) }
       ]
     );

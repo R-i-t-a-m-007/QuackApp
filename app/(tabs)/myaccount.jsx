@@ -108,7 +108,8 @@ export default function MyAccount() {
   
               if (response.ok) {
                 Alert.alert('Success', data.message);
-                fetchUserInfo(); // Refresh user data
+                //fetchUserInfo(); // Refresh user data
+                router.push('/login');
               } else {
                 Alert.alert('Error', data.message || 'Failed to cancel subscription');
               }
@@ -314,11 +315,16 @@ export default function MyAccount() {
                   />
                   {!userDetails.subscribed && (
                     <DetailCard 
-                      label="Subscription Ends" 
-                      value={new Date(userDetails.subscriptionEndDate).toLocaleDateString() || 'N/A'} 
-                      icon="calendar" 
+                      label="Subscription Ends"
+                      value={
+                        userDetails.subscriptionEndDate
+                          ? new Date(userDetails.subscriptionEndDate).toLocaleDateString()
+                          : 'N/A'
+                      }
+                      icon="calendar"
                     />
                   )}
+
                 </View>
                 <View style={styles.buttonRow}>
                     <TouchableOpacity style={styles.halfButton} onPress={handleLogout}>
